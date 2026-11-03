@@ -1,15 +1,53 @@
 import { useState, useEffect } from 'react';
 import { api, changePassword } from '../api';
-import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone, Download } from 'lucide-react';
+import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone, Download, Settings, Sun, Moon } from 'lucide-react';
 import Requests from './Requests';
 import Finance from './Finance';
 import Messages from './Messages';
+
+// تعریف ۵ تم رنگی
+const THEMES = {
+  blue: { bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-100', dark: 'dark:bg-blue-900', hover: 'hover:bg-blue-700' },
+  emerald: { bg: 'bg-emerald-600', text: 'text-emerald-600', light: 'bg-emerald-100', dark: 'dark:bg-emerald-900', hover: 'hover:bg-emerald-700' },
+  rose: { bg: 'bg-rose-600', text: 'text-rose-600', light: 'bg-rose-100', dark: 'dark:bg-rose-900', hover: 'hover:bg-rose-700' },
+  amber: { bg: 'bg-amber-500', text: 'text-amber-600', light: 'bg-amber-100', dark: 'dark:bg-amber-900', hover: 'hover:bg-amber-600' },
+  violet: { bg: 'bg-violet-600', text: 'text-violet-600', light: 'bg-violet-100', dark: 'dark:bg-violet-900', hover: 'hover:bg-violet-700' }
+};
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<'units' | 'requests' | 'finance' | 'messages'>('units');
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
+  // State های تم و حالت شب
+  const [themeName, setThemeName] = useState<keyof typeof THEMES>('blue');
+  const [isDark, setIsDark] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // بارگذاری تنظیمات ذخیره شده
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('app_theme') as keyof typeof THEMES;
+    const savedDark = localStorage.getItem('app_dark') === 'true';
+    if (savedTheme && THEMES[savedTheme]) setThemeName(savedTheme);
+    setIsDark(savedDark);
+    if (savedDark) document.documentElement.classList.add('dark');
+  }, []);
+
+  const changeTheme = (name: keyof typeof THEMES) => {
+    setThemeName(name);
+    localStorage.setItem('app_theme', name);
+  };
+
+  const toggleDarkMode = () => {
+    const newDark = !isDark;
+    setIsDark(newDark);
+    localStorage.setItem('app_dark', String(newDark));
+    if (newDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  };
+
+  const theme = THEMES[themeName];
+
   // State های اطلاعیه
   const [announcement, setAnnouncement] = useState<any>(null);
   const [showAnnModal, setShowAnnModal] = useState(false);
@@ -116,17 +154,26 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center rounded-b-2xl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 transition-colors duration-300">
+      <header className={`${theme.bg} text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center rounded-b-2xl transition-colors duration-300`}>
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6" /> Block-118</h1>
-          <p className="text-xs text-blue-200 mt-1">{user.name} خوش آمدید</p>
+          <p className="text-xs text-white/80 mt-1">{user.name} خوش آمدید</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowProfile(true)} className="bg-blue-700 hover:bg-blue-800 transition-colors p-2 rounded-xl text-sm font-medium">
+        <div className="flex items-center gap-1.5">
+          {/* دکمه تغییر حالت شب و روز */}
+          <button onClick={toggleDarkMode} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          {/* دکمه تنظیمات */}
+          <button onClick={() => setShowSettings(true)} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
+            <Settings className="w-5 h-5" />
+          </button>
+          {/* دکمه پروفایل */}
+          <button onClick={() => setShowProfile(true)} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
             <User className="w-5 h-5" />
           </button>
-          <button onClick={onLogout} className="bg-blue-700 hover:bg-red-500 transition-colors px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+          <button onClick={onLogout} className="bg-black/10 hover:bg-red-500 transition-colors px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
             <LogOut className="w-4 h-4" /> خروج
           </button>
         </div>
@@ -135,22 +182,22 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       {(announcement || user.role === 'admin') && (
         <div className="max-w-3xl mx-auto px-4 mt-4">
           {announcement ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm relative group">
-              <Megaphone className="w-6 h-6 text-yellow-600 mt-1 shrink-0" />
+            <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50 rounded-2xl p-4 flex items-start gap-3 shadow-sm relative group transition-colors">
+              <Megaphone className="w-6 h-6 text-yellow-600 dark:text-yellow-500 mt-1 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm text-yellow-800 font-medium leading-relaxed whitespace-pre-wrap">{announcement.text}</p>
-                <p className="text-[10px] text-yellow-600 mt-2">{new Date(announcement.createdAt).toLocaleString('fa-IR')}</p>
+                <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium leading-relaxed whitespace-pre-wrap">{announcement.text}</p>
+                <p className="text-[10px] text-yellow-600 dark:text-yellow-400 mt-2">{new Date(announcement.createdAt).toLocaleString('fa-IR')}</p>
               </div>
               {user.role === 'admin' && (
                 <div className="flex flex-col gap-1">
-                  <button onClick={() => { setAnnText(announcement.text); setShowAnnModal(true); }} className="text-yellow-600 hover:text-yellow-800 p-1"><Edit3 className="w-4 h-4" /></button>
-                  <button onClick={deleteAnnouncement} className="text-yellow-600 hover:text-red-500 p-1"><X className="w-4 h-4" /></button>
+                  <button onClick={() => { setAnnText(announcement.text); setShowAnnModal(true); }} className="text-yellow-600 dark:text-yellow-500 hover:text-yellow-800 p-1"><Edit3 className="w-4 h-4" /></button>
+                  <button onClick={deleteAnnouncement} className="text-yellow-600 dark:text-yellow-500 hover:text-red-500 p-1"><X className="w-4 h-4" /></button>
                 </div>
               )}
             </div>
           ) : (
             user.role === 'admin' && (
-              <button onClick={() => { setAnnText(''); setShowAnnModal(true); }} className="w-full bg-yellow-50 border border-yellow-200 border-dashed text-yellow-700 py-3 rounded-2xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-yellow-100 transition-colors">
+              <button onClick={() => { setAnnText(''); setShowAnnModal(true); }} className="w-full bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700/50 border-dashed text-yellow-700 dark:text-yellow-500 py-3 rounded-2xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-yellow-100 transition-colors">
                 <Megaphone className="w-5 h-5" /> ثبت اطلاعیه جدید برای ساختمان
               </button>
             )
@@ -163,25 +210,25 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
           <>
             {user.role === 'admin' && (
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                  <div className="bg-blue-100 p-3 rounded-xl text-blue-600"><Building2 className="w-6 h-6" /></div>
-                  <div><p className="text-gray-500 text-sm">کل واحدها</p><p className="text-xl font-bold text-gray-800">{units.length}</p></div>
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4 transition-colors">
+                  <div className={`${theme.light} dark:bg-gray-700 p-3 rounded-xl ${theme.text}`}><Building2 className="w-6 h-6" /></div>
+                  <div><p className="text-gray-500 dark:text-gray-400 text-sm">کل واحدها</p><p className="text-xl font-bold text-gray-800 dark:text-gray-100">{units.length}</p></div>
                 </div>
               </div>
             )}
-            <h2 className="text-lg font-bold text-gray-800 mb-4">{user.role === 'admin' ? 'لیست واحدها' : 'واحد من'}</h2>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">{user.role === 'admin' ? 'لیست واحدها' : 'واحد من'}</h2>
             {loading ? (
-              <div className="flex justify-center py-10 text-blue-500"><Loader2 className="w-8 h-8 animate-spin" /></div>
+              <div className={`flex justify-center py-10 ${theme.text}`}><Loader2 className="w-8 h-8 animate-spin" /></div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {units.map((unit) => (
-                  <div key={unit.id} onClick={() => user.role === 'admin' && openUnit(unit)} className={`bg-white p-4 rounded-2xl shadow-sm border border-gray-200 transition-shadow ${user.role === 'admin' ? 'cursor-pointer hover:shadow-md' : ''}`}>
+                  <div key={unit.id} onClick={() => user.role === 'admin' && openUnit(unit)} className={`bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 transition-all ${user.role === 'admin' ? 'cursor-pointer hover:shadow-md' : ''}`}>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold text-gray-800">واحد {unit.unitNumber}</span>
-                      <span className={`text-xs px-2 py-1 rounded-md ${unit.status === 'vacant' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{unit.status === 'vacant' ? 'خالی' : 'ساکن دارد'}</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-100">واحد {unit.unitNumber}</span>
+                      <span className={`text-xs px-2 py-1 rounded-md ${unit.status === 'vacant' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400' : 'bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400'}`}>{unit.status === 'vacant' ? 'خالی' : 'ساکن دارد'}</span>
                     </div>
-                    <p className="text-xs text-gray-400">طبقه {unit.floor}</p>
-                    {unit.owner && <p className="text-xs text-gray-600 mt-1">مالک: {unit.owner}</p>}
+                    <p className="text-xs text-gray-400 dark:text-gray-500">طبقه {unit.floor}</p>
+                    {unit.owner && <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">مالک: {unit.owner}</p>}
                     {unit.debt > 0 && <p className="text-xs text-red-500 mt-2 font-bold">بدهی: {Number(unit.debt).toLocaleString('fa-IR')} تومان</p>}
                   </div>
                 ))}
@@ -195,35 +242,65 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         {activeTab === 'messages' && <Messages user={user} />}
       </main>
 
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-        <button onClick={() => setActiveTab('units')} className={`flex flex-col items-center p-2 ${activeTab === 'units' ? 'text-blue-600' : 'text-gray-400'}`}>
+      <nav className="fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around p-2 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-colors">
+        <button onClick={() => setActiveTab('units')} className={`flex flex-col items-center p-2 ${activeTab === 'units' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
           <Home className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">داشبورد</span>
         </button>
-        <button onClick={() => setActiveTab('messages')} className={`flex flex-col items-center p-2 ${activeTab === 'messages' ? 'text-blue-600' : 'text-gray-400'}`}>
+        <button onClick={() => setActiveTab('messages')} className={`flex flex-col items-center p-2 ${activeTab === 'messages' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
           <MessageCircle className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">پیام‌ها</span>
         </button>
-        <button onClick={() => setActiveTab('requests')} className={`flex flex-col items-center p-2 ${activeTab === 'requests' ? 'text-blue-600' : 'text-gray-400'}`}>
+        <button onClick={() => setActiveTab('requests')} className={`flex flex-col items-center p-2 ${activeTab === 'requests' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
           <Wrench className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">درخواست‌ها</span>
         </button>
-        <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center p-2 ${activeTab === 'finance' ? 'text-blue-600' : 'text-gray-400'}`}>
+        <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center p-2 ${activeTab === 'finance' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
           <Wallet className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">شارژها</span>
         </button>
       </nav>
 
+      {/* مدال تنظیمات ظاهری */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowSettings(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Settings className="w-5 h-5 text-gray-500" /> تنظیمات ظاهری</h3>
+              <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-red-500"><X /></button>
+            </div>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">رنگ اپلیکیشن را انتخاب کنید:</p>
+            <div className="flex justify-between gap-2 mb-8">
+              {(Object.keys(THEMES) as Array<keyof typeof THEMES>).map(color => (
+                <button 
+                  key={color} 
+                  onClick={() => changeTheme(color)}
+                  className={`w-12 h-12 rounded-full ${THEMES[color].bg} ${themeName === color ? 'ring-4 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800' : 'opacity-70'} transition-all`}
+                />
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl">
+              <span className="font-bold text-gray-700 dark:text-gray-200">حالت شب (تیره)</span>
+              <button onClick={toggleDarkMode} className={`p-2 rounded-xl transition-colors ${isDark ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-200 text-gray-600'}`}>
+                {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* مدال ویرایش واحد */}
       {selectedUnit && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !saving && setSelectedUnit(null)}>
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Edit3 className="w-5 h-5 text-blue-600" /> ویرایش واحد {selectedUnit.unitNumber}</h3>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Edit3 className={`w-5 h-5 ${theme.text}`} /> ویرایش واحد {selectedUnit.unitNumber}</h3>
               <button onClick={() => setSelectedUnit(null)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
             <div className="space-y-4">
-              <div><label className="block text-sm text-gray-600 mb-1">نام مالک</label><input type="text" value={editForm.owner} onChange={e => setEditForm({...editForm, owner: e.target.value})} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="خالی بگذارید اگر ساکن ندارد" /></div>
-              <div><label className="block text-sm text-gray-600 mb-1">وضعیت واحد</label><select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="w-full px-4 py-2 border rounded-xl outline-none bg-white"><option value="vacant">خالی</option><option value="occupied">ساکن دارد</option></select></div>
-              <div><label className="block text-sm text-gray-600 mb-1">بدهی (تومان)</label><input type="number" value={editForm.debt} onChange={e => setEditForm({...editForm, debt: Number(e.target.value)})} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left" dir="ltr" /></div>
+              <div><label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">نام مالک</label><input type="text" value={editForm.owner} onChange={e => setEditForm({...editForm, owner: e.target.value})} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="خالی بگذارید اگر ساکن ندارد" /></div>
+              <div><label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">وضعیت واحد</label><select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="w-full px-4 py-2 border rounded-xl outline-none bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"><option value="vacant">خالی</option><option value="occupied">ساکن دارد</option></select></div>
+              <div><label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">بدهی (تومان)</label><input type="number" value={editForm.debt} onChange={e => setEditForm({...editForm, debt: Number(e.target.value)})} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" dir="ltr" /></div>
             </div>
-            <button onClick={handleSaveUnit} disabled={saving} className="w-full mt-6 bg-green-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">{saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}</button>
+            <button onClick={handleSaveUnit} disabled={saving} className={`w-full mt-6 ${theme.bg} ${theme.hover} text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors`}>{saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}</button>
           </div>
         </div>
       )}
@@ -231,24 +308,24 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       {/* مدال پروفایل و بکاپ */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !passLoading && setShowProfile(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Key className="w-5 h-5 text-blue-600" /> تنظیمات حساب</h3>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Key className={`w-5 h-5 ${theme.text}`} /> تنظیمات حساب</h3>
               <button onClick={() => setShowProfile(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
             
             <form onSubmit={handleChangePassword} className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">رمز عبور جدید</label>
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left" dir="ltr" placeholder="حداقل ۶ کاراکتر" required />
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">رمز عبور جدید</label>
+                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" dir="ltr" placeholder="حداقل ۶ کاراکتر" required />
               </div>
               {passMessage.text && <p className={`text-sm text-center p-2 rounded-lg ${passMessage.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>{passMessage.text}</p>}
-              <button type="submit" disabled={passLoading || newPassword.length < 6} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors">{passLoading ? 'در حال تغییر...' : 'تغییر رمز عبور'}</button>
+              <button type="submit" disabled={passLoading || newPassword.length < 6} className={`w-full ${theme.bg} ${theme.hover} text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors`}>{passLoading ? 'در حال تغییر...' : 'تغییر رمز عبور'}</button>
             </form>
 
             {user.role === 'admin' && (
-              <div className="pt-4 border-t border-gray-100">
-                <button onClick={downloadBackup} disabled={backupLoading} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button onClick={downloadBackup} disabled={backupLoading} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
                   {backupLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
                   دانلود فایل پشتیبان (بکاپ)
                 </button>
@@ -261,16 +338,16 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       {/* مدال نوشتن اطلاعیه */}
       {showAnnModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !annSaving && setShowAnnModal(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Megaphone className="w-5 h-5 text-yellow-600" /> ثبت اطلاعیه</h3>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Megaphone className="w-5 h-5 text-yellow-600" /> ثبت اطلاعیه</h3>
               <button onClick={() => setShowAnnModal(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
-            <textarea value={annText} onChange={e => setAnnText(e.target.value)} rows={4} className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-yellow-500 mb-4" placeholder="متن اطلاعیه (مثلا: قطعی آب فردا از ساعت ۹ تا ۱۲)"></textarea>
-            <button onClick={handleSaveAnnouncement} disabled={annSaving || !annText.trim()} className="w-full bg-yellow-500 text-white font-bold py-3 rounded-xl disabled:opacity-50">{annSaving ? 'در حال ثبت...' : 'انتشار اطلاعیه'}</button>
+            <textarea value={annText} onChange={e => setAnnText(e.target.value)} rows={4} className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-yellow-500 mb-4 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="متن اطلاعیه (مثلا: قطعی آب فردا از ساعت ۹ تا ۱۲)"></textarea>
+            <button onClick={handleSaveAnnouncement} disabled={annSaving || !annText.trim()} className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors">{annSaving ? 'در حال ثبت...' : 'انتشار اطلاعیه'}</button>
           </div>
         </div>
       )}
     </div>
   );
-                                                                                                      }
+          }
