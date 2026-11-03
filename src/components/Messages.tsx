@@ -33,7 +33,6 @@ export default function Messages({ user }: { user: any }) {
     if (!text.trim()) return;
     setSending(true);
     try {
-      // 👈 اصلاح مهم: اگر ساکن باشد، گیرنده به اجبار "admin" می‌شود
       const actualReceiver = user.role === 'admin' ? receiver : 'admin';
       await api.post('/messages', { receiver: actualReceiver, text });
       setText('');
@@ -113,8 +112,8 @@ export default function Messages({ user }: { user: any }) {
             required
           />
           <button type="submit" disabled={sending} className="bg-blue-600 text-white p-2.5 rounded-xl disabled:opacity-50 hover:bg-blue-700 transition-colors">
-            {/* 👈 اصلاح دوم: تغییر جهت آیکون ارسال */}
-            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 -scale-x-100" />}
+            {/* 👈 اصلاح نهایی جهت آیکون */}
+            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 -rotate-45" />}
           </button>
         </div>
       </form>
