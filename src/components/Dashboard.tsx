@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, changePassword } from '../api';
-import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key } from 'lucide-react';
+import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone } from 'lucide-react';
 import Requests from './Requests';
 import Finance from './Finance';
 import Messages from './Messages';
@@ -10,6 +10,12 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // State های اطلاعیه
+  const [announcement, setAnnouncement] = useState<any>(null);
+  const [showAnnModal, setShowAnnModal] = useState(false);
+  const [annText, setAnnText] = useState('');
+  const [annSaving, setAnnSaving] = useState(false);
+
   // State های مدال ویرایش واحد
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
   const [editForm, setEditForm] = useState({ owner: '', status: 'vacant', debt: 0 });
@@ -21,16 +27,40 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const [passLoading, setPassLoading] = useState(false);
   const [passMessage, setPassMessage] = useState({ type: '', text: '' });
 
-  const fetchUnits = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/units');
-      setUnits(response.data.units);
+      const [unitsRes, annRes] = await Promise.all([
+        api.get('/units'),
+        api.get('/announcements')
+      ]);
+      setUnits(unitsRes.data.units);
+      if (annRes.data.announcements && annRes.data.announcements.length > 0) {
+        setAnnouncement(annRes.data.announcements[0]); // نمایش آخرین اطلاعیه
+      }
     } catch (error) { console.error(error); } 
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchUnits(); }, []);
+  useEffect(() => { fetchData(); }, []);
+
+  const handleSaveAnnouncement = async () => {
+    setAnnSaving(true);
+    try {
+      await api.post('/announcements', { text: annText, id: announcement?.id });
+      setShowAnnModal(false);
+      fetchData();
+    } catch (err) { alert('خطا در ثبت اطلاعیه'); } 
+    finally { setAnnSaving(false); }
+  };
+
+  const deleteAnnouncement = async () => {
+    if (!window.confirm('آیا از حذف این اطلاعیه اطمینان دارید؟')) return;
+    try {
+      await api.delete(`/announcements?id=${announcement.id}`);
+      setAnnouncement(null);
+    } catch (err) { alert('خطا در حذف اطلاعیه'); }
+  };
 
   const openUnit = (unit: any) => {
     setSelectedUnit(unit);
@@ -42,7 +72,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     try {
       await api.patch(`/units/${selectedUnit.id}`, editForm);
       setSelectedUnit(null);
-      fetchUnits();
+      fetchData();
     } catch (error) { alert("خطا در ذخیره"); } 
     finally { setSaving(false); }
   };
@@ -59,9 +89,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       setTimeout(() => setShowProfile(false), 2000);
     } catch (err: any) {
       setPassMessage({ type: 'error', text: err.response?.data?.error || 'خطا در تغییر رمز' });
-    } finally {
-      setPassLoading(false);
-    }
+    } finally { setPassLoading(false); }
   };
 
   return (
@@ -81,7 +109,34 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       </header>
 
-      <main className="p-4 max-w-3xl mx-auto">
+      {/* بنر اطلاعیه */}
+      {(announcement || user.role === 'admin') && (
+        <div className="max-w-3xl mx-auto px-4 mt-4">
+          {announcement ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm relative group">
+              <Megaphone className="w-6 h-6 text-yellow-600 mt-1 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-yellow-800 font-medium leading-relaxed whitespace-pre-wrap">{announcement.text}</p>
+                <p className="text-[10px] text-yellow-600 mt-2">{new Date(announcement.createdAt).toLocaleString('fa-IR')}</p>
+              </div>
+              {user.role === 'admin' && (
+                <div className="flex flex-col gap-1">
+                  <button onClick={() => { setAnnText(announcement.text); setShowAnnModal(true); }} className="text-yellow-600 hover:text-yellow-800 p-1"><Edit3 className="w-4 h-4" /></button>
+                  <button onClick={deleteAnnouncement} className="text-yellow-600 hover:text-red-500 p-1"><X className="w-4 h-4" /></button>
+                </div>
+              )}
+            </div>
+          ) : (
+            user.role === 'admin' && (
+              <button onClick={() => { setAnnText(''); setShowAnnModal(true); }} className="w-full bg-yellow-50 border border-yellow-200 border-dashed text-yellow-700 py-3 rounded-2xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-yellow-100 transition-colors">
+                <Megaphone className="w-5 h-5" /> ثبت اطلاعیه جدید برای ساختمان
+              </button>
+            )
+          )}
+        </div>
+      )}
+
+      <main className="p-4 max-w-3xl mx-auto mt-2">
         {activeTab === 'units' && (
           <>
             {user.role === 'admin' && (
@@ -118,6 +173,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         {activeTab === 'messages' && <Messages user={user} />}
       </main>
 
+      {/* منوی پایین */}
       <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <button onClick={() => setActiveTab('units')} className={`flex flex-col items-center p-2 ${activeTab === 'units' ? 'text-blue-600' : 'text-gray-400'}`}>
           <Home className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">داشبورد</span>
@@ -151,7 +207,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       )}
 
-      {/* مدال پروفایل و تغییر رمز */}
+      {/* مدال تغییر رمز */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !passLoading && setShowProfile(false)}>
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -159,34 +215,31 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Key className="w-5 h-5 text-blue-600" /> تنظیمات حساب</h3>
               <button onClick={() => setShowProfile(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
-            
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">رمز عبور جدید</label>
-                <input 
-                  type="password" 
-                  value={newPassword} 
-                  onChange={e => setNewPassword(e.target.value)} 
-                  className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left" 
-                  dir="ltr" 
-                  placeholder="حداقل ۶ کاراکتر"
-                  required 
-                />
+                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left" dir="ltr" placeholder="حداقل ۶ کاراکتر" required />
               </div>
-
-              {passMessage.text && (
-                <p className={`text-sm text-center p-2 rounded-lg ${passMessage.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>
-                  {passMessage.text}
-                </p>
-              )}
-
-              <button type="submit" disabled={passLoading || newPassword.length < 6} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors">
-                {passLoading ? 'در حال تغییر...' : 'تغییر رمز عبور'}
-              </button>
+              {passMessage.text && <p className={`text-sm text-center p-2 rounded-lg ${passMessage.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>{passMessage.text}</p>}
+              <button type="submit" disabled={passLoading || newPassword.length < 6} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors">{passLoading ? 'در حال تغییر...' : 'تغییر رمز عبور'}</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* مدال نوشتن اطلاعیه */}
+      {showAnnModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !annSaving && setShowAnnModal(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Megaphone className="w-5 h-5 text-yellow-600" /> ثبت اطلاعیه</h3>
+              <button onClick={() => setShowAnnModal(false)} className="text-gray-400 hover:text-red-500"><X /></button>
+            </div>
+            <textarea value={annText} onChange={e => setAnnText(e.target.value)} rows={4} className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-yellow-500 mb-4" placeholder="متن اطلاعیه (مثلا: قطعی آب فردا از ساعت ۹ تا ۱۲)"></textarea>
+            <button onClick={handleSaveAnnouncement} disabled={annSaving || !annText.trim()} className="w-full bg-yellow-500 text-white font-bold py-3 rounded-xl disabled:opacity-50">{annSaving ? 'در حال ثبت...' : 'انتشار اطلاعیه'}</button>
           </div>
         </div>
       )}
     </div>
   );
-}
+                                                                                                                 }
