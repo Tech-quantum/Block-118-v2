@@ -1,34 +1,37 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const PROJECT = "block-118-f2918";
-// 👈 اصلاح شد: آدرس پایه باید به روت دیتابیس اشاره کند
 const DOCS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 const EXPENSES_URL = `${DOCS_BASE}/expenses`;
 
 async function updateSummary(token: string) {
-  // گرفتن تراکنش‌ها از روت اصلی (نه از داخل پوشه هزینه‌ها)
-  const transRes = await fetch(`${DOCS_BASE}/transactions`, { headers: { Authorization: `Bearer ${token}` } });
-  const expRes = await fetch(EXPENSES_URL, { headers: { Authorization: `Bearer ${token}` } });
-  
-  const transData = await transRes.json();
-  const expData = await expRes.json();
-  
-  let totalPayments = 0;
-  (transData.documents || []).forEach((doc: any) => {
-    if (doc.fields.type?.stringValue === 'payment') totalPayments += Number(doc.fields.amount?.integerValue || 0);
-  });
-  
-  let totalExpenses = 0;
-  (expData.documents || []).forEach((doc: any) => {
-    totalExpenses += Number(doc.fields.amount?.integerValue || 0);
-  });
-  
-  const fundBalance = totalPayments - totalExpenses;
-  
-  await fetch(`${DOCS_BASE}/summary/stats`, {
-    method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: { fundBalance: { integerValue: String(fundBalance) } } })
-  });
+  try {
+    const transRes = await fetch(`${DOCS_BASE}/transactions`, { headers: { Authorization: `Bearer ${token}` } });
+    const expRes = await fetch(EXPENSES_URL, { headers: { Authorization: `Bearer ${token}` } });
+    
+    const transData = await transRes.json();
+    const expData = await expRes.json();
+    
+    let totalPayments = 0;
+    (transData.documents || []).forEach((doc: any) => {
+      if (doc.fields.type?.stringValue === 'payment') totalPayments += Number(doc.fields.amount?.integerValue || 0);
+    });
+    
+    let totalExpenses = 0;
+    (expData.documents || []).forEach((doc: any) => {
+      totalExpenses += Number(doc.fields.amount?.integerValue || 0);
+    });
+    
+    const fundBalance = totalPayments - totalExpenses;
+    
+    // 👈 تغییر مهم: استفاده از PUT به جای PATCH برای ساخت حتمی سند
+    await fetch(`${DOCS_BASE}/summary/stats`, {
+      method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { fundBalance: { integerValue: String(fundBalance) } } })
+    });
+  } catch (e) {
+    console.error("Summary update failed", e);
+  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -60,7 +63,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else if (req.method === 'POST') {
       if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
       const { title, amount, description } = req.body;
-      if (!title || !amount) return res.status(400).json({ error: 'Missing fields' });
       const body = {
         fields: {
           title: { stringValue: title },
@@ -76,7 +78,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else if (req.method === 'PATCH') {
       if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'Missing ID' });
       const { title, amount, description } = req.body;
       const updateMask = ['title', 'amount', 'description'];
       const fields = {
@@ -93,7 +94,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else if (req.method === 'DELETE') {
       if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'Missing ID' });
       await fetch(`${EXPENSES_URL}/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       await updateSummary(token);
       return res.status(200).json({ success: true });
@@ -101,7 +101,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
-    console.error('Expense API Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
