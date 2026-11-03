@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api, changePassword } from '../api';
-import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone, Download, Settings, Sun, Moon, HelpCircle } from 'lucide-react';
+import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone, Download, Settings, Sun, Moon, HelpCircle, Receipt } from 'lucide-react';
 import Requests from './Requests';
 import Finance from './Finance';
 import Messages from './Messages';
+import Expenses from './Expenses';
 
 const THEMES = {
   blue: { bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-100', dark: 'dark:bg-blue-900', hover: 'hover:bg-blue-700' },
@@ -14,15 +15,12 @@ const THEMES = {
 };
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<'units' | 'requests' | 'finance' | 'messages'>('units');
+  const [activeTab, setActiveTab] = useState<'units' | 'requests' | 'finance' | 'messages' | 'expenses'>('units');
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // State های تم و حالت شب
   const [themeName, setThemeName] = useState<keyof typeof THEMES>('blue');
   const [isDark, setIsDark] = useState(false);
-  
-  // State های مدال‌ها
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
@@ -34,11 +32,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     if (savedDark) document.documentElement.classList.add('dark');
   }, []);
 
-  const changeTheme = (name: keyof typeof THEMES) => {
-    setThemeName(name);
-    localStorage.setItem('app_theme', name);
-  };
-
+  const changeTheme = (name: keyof typeof THEMES) => { setThemeName(name); localStorage.setItem('app_theme', name); };
   const toggleDarkMode = () => {
     const newDark = !isDark;
     setIsDark(newDark);
@@ -46,62 +40,43 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     if (newDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   };
-
   const theme = THEMES[themeName];
 
-  // State های اطلاعیه
   const [announcement, setAnnouncement] = useState<any>(null);
   const [showAnnModal, setShowAnnModal] = useState(false);
   const [annText, setAnnText] = useState('');
   const [annSaving, setAnnSaving] = useState(false);
 
-  // State های مدال ویرایش واحد
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
   const [editForm, setEditForm] = useState({ owner: '', status: 'vacant', debt: 0 });
   const [saving, setSaving] = useState(false);
 
-  // State های مدال پروفایل
   const [showProfile, setShowProfile] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [passLoading, setPassLoading] = useState(false);
   const [passMessage, setPassMessage] = useState({ type: '', text: '' });
-  
-  // State بکاپ
   const [backupLoading, setBackupLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [unitsRes, annRes] = await Promise.all([
-        api.get('/units'),
-        api.get('/announcements')
-      ]);
+      const [unitsRes, annRes] = await Promise.all([ api.get('/units'), api.get('/announcements') ]);
       setUnits(unitsRes.data.units);
-      if (annRes.data.announcements && annRes.data.announcements.length > 0) {
-        setAnnouncement(annRes.data.announcements[0]);
-      }
-    } catch (error) { console.error(error); } 
-    finally { setLoading(false); }
+      if (annRes.data.announcements && annRes.data.announcements.length > 0) setAnnouncement(annRes.data.announcements[0]);
+    } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const handleSaveAnnouncement = async () => {
     setAnnSaving(true);
-    try {
-      await api.post('/announcements', { text: annText, id: announcement?.id });
-      setShowAnnModal(false);
-      fetchData();
-    } catch (err) { alert('خطا در ثبت اطلاعیه'); } 
-    finally { setAnnSaving(false); }
+    try { await api.post('/announcements', { text: annText, id: announcement?.id }); setShowAnnModal(false); fetchData(); } 
+    catch (err) { alert('خطا در ثبت اطلاعیه'); } finally { setAnnSaving(false); }
   };
 
   const deleteAnnouncement = async () => {
     if (!window.confirm('آیا از حذف این اطلاعیه اطمینان دارید؟')) return;
-    try {
-      await api.delete(`/announcements?id=${announcement.id}`);
-      setAnnouncement(null);
-    } catch (err) { alert('خطا در حذف اطلاعیه'); }
+    try { await api.delete(`/announcements?id=${announcement.id}`); setAnnouncement(null); } catch (err) { alert('خطا در حذف اطلاعیه'); }
   };
 
   const openUnit = (unit: any) => {
@@ -111,12 +86,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
 
   const handleSaveUnit = async () => {
     setSaving(true);
-    try {
-      await api.patch(`/units/${selectedUnit.id}`, editForm);
-      setSelectedUnit(null);
-      fetchData();
-    } catch (error) { alert("خطا در ذخیره"); } 
-    finally { setSaving(false); }
+    try { await api.patch(`/units/${selectedUnit.id}`, editForm); setSelectedUnit(null); fetchData(); } 
+    catch (error) { alert("خطا در ذخیره"); } finally { setSaving(false); }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -129,9 +100,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       setPassMessage({ type: 'success', text: 'رمز عبور با موفقیت تغییر کرد.' });
       setNewPassword('');
       setTimeout(() => setShowProfile(false), 2000);
-    } catch (err: any) {
-      setPassMessage({ type: 'error', text: err.response?.data?.error || 'خطا در تغییر رمز' });
-    } finally { setPassLoading(false); }
+    } catch (err: any) { setPassMessage({ type: 'error', text: err.response?.data?.error || 'خطا در تغییر رمز' }); } 
+    finally { setPassLoading(false); }
   };
 
   const downloadBackup = async () => {
@@ -143,15 +113,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       const a = document.createElement('a');
       a.href = url;
       a.download = `block-118-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert('خطا در دریافت فایل بکاپ');
-    } finally {
-      setBackupLoading(false);
-    }
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    } catch (err) { alert('خطا در دریافت فایل بکاپ'); } finally { setBackupLoading(false); }
   };
 
   return (
@@ -162,18 +125,10 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
           <p className="text-xs text-white/80 mt-1">{user.name} خوش آمدید</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <button onClick={toggleDarkMode} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-          <button onClick={() => setShowSettings(true)} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
-            <Settings className="w-5 h-5" />
-          </button>
-          <button onClick={() => setShowProfile(true)} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
-            <User className="w-5 h-5" />
-          </button>
-          <button onClick={onLogout} className="bg-black/10 hover:bg-red-500 transition-colors px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-            <LogOut className="w-4 h-4" /> خروج
-          </button>
+          <button onClick={toggleDarkMode} className="bg-black/10 hover:bg-black/20 p-2 rounded-xl transition-colors">{isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</button>
+          <button onClick={() => setShowSettings(true)} className="bg-black/10 hover:bg-black/20 p-2 rounded-xl transition-colors"><Settings className="w-5 h-5" /></button>
+          <button onClick={() => setShowProfile(true)} className="bg-black/10 hover:bg-black/20 p-2 rounded-xl transition-colors"><User className="w-5 h-5" /></button>
+          <button onClick={onLogout} className="bg-black/10 hover:bg-red-500 px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors"><LogOut className="w-4 h-4" /> خروج</button>
         </div>
       </header>
 
@@ -238,20 +193,25 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         {activeTab === 'requests' && <Requests user={user} />}
         {activeTab === 'finance' && <Finance user={user} />}
         {activeTab === 'messages' && <Messages user={user} />}
+        {activeTab === 'expenses' && <Expenses user={user} />}
       </main>
 
-      <nav className="fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around p-2 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-colors">
+      {/* منوی پایین با ۵ تب (تنظیم شده برای فیت شدن در صفحه) */}
+      <nav className="fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 grid grid-cols-5 p-1 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-colors">
         <button onClick={() => setActiveTab('units')} className={`flex flex-col items-center p-2 ${activeTab === 'units' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
-          <Home className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">داشبورد</span>
+          <Home className="w-5 h-5" /><span className="text-[10px] mt-1 font-medium">داشبورد</span>
         </button>
         <button onClick={() => setActiveTab('messages')} className={`flex flex-col items-center p-2 ${activeTab === 'messages' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
-          <MessageCircle className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">پیام‌ها</span>
+          <MessageCircle className="w-5 h-5" /><span className="text-[10px] mt-1 font-medium">پیام‌ها</span>
         </button>
         <button onClick={() => setActiveTab('requests')} className={`flex flex-col items-center p-2 ${activeTab === 'requests' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
-          <Wrench className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">درخواست‌ها</span>
+          <Wrench className="w-5 h-5" /><span className="text-[10px] mt-1 font-medium">درخواست‌ها</span>
         </button>
         <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center p-2 ${activeTab === 'finance' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
-          <Wallet className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">شارژها</span>
+          <Wallet className="w-5 h-5" /><span className="text-[10px] mt-1 font-medium">شارژها</span>
+        </button>
+        <button onClick={() => setActiveTab('expenses')} className={`flex flex-col items-center p-2 ${activeTab === 'expenses' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
+          <Receipt className="w-5 h-5" /><span className="text-[10px] mt-1 font-medium">هزینه‌ها</span>
         </button>
       </nav>
 
@@ -267,19 +227,13 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">رنگ اپلیکیشن را انتخاب کنید:</p>
             <div className="flex justify-between gap-2 mb-6">
               {(Object.keys(THEMES) as Array<keyof typeof THEMES>).map(color => (
-                <button 
-                  key={color} 
-                  onClick={() => changeTheme(color)}
-                  className={`w-12 h-12 rounded-full ${THEMES[color].bg} ${themeName === color ? 'ring-4 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800' : 'opacity-70'} transition-all`}
-                />
+                <button key={color} onClick={() => changeTheme(color)} className={`w-12 h-12 rounded-full ${THEMES[color].bg} ${themeName === color ? 'ring-4 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800' : 'opacity-70'} transition-all`} />
               ))}
             </div>
 
             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl mb-4">
               <span className="font-bold text-gray-700 dark:text-gray-200">حالت شب (تیره)</span>
-              <button onClick={toggleDarkMode} className={`p-2 rounded-xl transition-colors ${isDark ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-200 text-gray-600'}`}>
-                {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-              </button>
+              <button onClick={toggleDarkMode} className={`p-2 rounded-xl transition-colors ${isDark ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-200 text-gray-600'}`}>{isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}</button>
             </div>
 
             <button onClick={() => { setShowSettings(false); setShowHelp(true); }} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
@@ -297,7 +251,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><HelpCircle className="w-5 h-5 text-blue-500" /> راهنمای کاربران</h3>
               <button onClick={() => setShowHelp(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
-            
             <div className="overflow-y-auto pr-1 text-sm text-gray-600 dark:text-gray-300 space-y-4">
               <div>
                 <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-1">👤 راهنمای ساکنین</h4>
@@ -310,20 +263,19 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                   <li><strong>اطلاعیه‌ها:</strong> پیام‌های گروهی مدیر در بالای داشبورد شما نمایش داده می‌شود.</li>
                 </ul>
               </div>
-
               {user.role === 'admin' && (
                 <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                   <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-1">👑 راهنمای مدیر</h4>
                   <ul className="list-disc list-inside space-y-1">
                     <li><strong>ویرایش واحدها:</strong> با کلیک روی هر واحد در داشبورد، مالک و بدهی را تغییر دهید.</li>
                     <li><strong>امور مالی:</strong> در تب شارژها، صدور شارژ گروهی یا تک‌نفره و ثبت پرداخت‌ها.</li>
+                    <li><strong>هزینه‌ها:</strong> در تب هزینه‌ها، مخارج ساختمان را ثبت کنید تا از موجودی صندوق کم شود.</li>
                     <li><strong>مدیریت درخواست‌ها:</strong> تغییر وضعیت خرابی‌ها به "در حال بررسی" یا "انجام شد".</li>
                     <li><strong>اطلاعیه:</strong> استفاده از بنر زرد رنگ در بالای داشبورد برای پیام به همه.</li>
                     <li><strong>بکاپ:</strong> دریافت فایل پشتیبان از طریق آیکون پروفایل (👤).</li>
                   </ul>
                 </div>
               )}
-
               <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                 <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-1">📲 نصب روی گوشی</h4>
                 <p>در مرورگر کروم، منوی سه نقطه را باز کرده و گزینه <strong>Add to Home Screen</strong> را انتخاب کنید تا آیکون اپ روی صفحه اصلی قرار بگیرد.</p>
@@ -359,21 +311,15 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Key className={`w-5 h-5 ${theme.text}`} /> تنظیمات حساب</h3>
               <button onClick={() => setShowProfile(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
-            
             <form onSubmit={handleChangePassword} className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">رمز عبور جدید</label>
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" dir="ltr" placeholder="حداقل ۶ کاراکتر" required />
-              </div>
+              <div><label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">رمز عبور جدید</label><input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" dir="ltr" placeholder="حداقل ۶ کاراکتر" required /></div>
               {passMessage.text && <p className={`text-sm text-center p-2 rounded-lg ${passMessage.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>{passMessage.text}</p>}
               <button type="submit" disabled={passLoading || newPassword.length < 6} className={`w-full ${theme.bg} ${theme.hover} text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors`}>{passLoading ? 'در حال تغییر...' : 'تغییر رمز عبور'}</button>
             </form>
-
             {user.role === 'admin' && (
               <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button onClick={downloadBackup} disabled={backupLoading} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
-                  {backupLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                  دانلود فایل پشتیبان (بکاپ)
+                  {backupLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />} دانلود فایل پشتیبان (بکاپ)
                 </button>
               </div>
             )}
@@ -389,11 +335,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Megaphone className="w-5 h-5 text-yellow-600" /> ثبت اطلاعیه</h3>
               <button onClick={() => setShowAnnModal(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
-            <textarea value={annText} onChange={e => setAnnText(e.target.value)} rows={4} className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-yellow-500 mb-4 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="متن اطلاعیه (مثلا: قطعی آب فردا از ساعت ۹ تا ۱۲)"></textarea>
+            <textarea value={annText} onChange={e => setAnnText(e.target.value)} rows={4} className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-yellow-500 mb-4 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="متن اطلاعیه..."></textarea>
             <button onClick={handleSaveAnnouncement} disabled={annSaving || !annText.trim()} className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors">{annSaving ? 'در حال ثبت...' : 'انتشار اطلاعیه'}</button>
           </div>
         </div>
       )}
     </div>
   );
-              }
+      }
