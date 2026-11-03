@@ -53,7 +53,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     setPassMessage({ type: '', text: '' });
     try {
       const res = await changePassword(newPassword);
-      // توکن جدید را در لوکال استوریج ذخیره می‌کنیم تا کاربر از اکانت خارج نشود
       localStorage.setItem('token', res.newToken);
       setPassMessage({ type: 'success', text: 'رمز عبور با موفقیت تغییر کرد.' });
       setNewPassword('');
@@ -115,7 +114,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         )}
 
         {activeTab === 'requests' && <Requests user={user} />}
-        {activeTab === 'finance' && <Finance />}
+        {activeTab === 'finance' && <Finance user={user} />}
         {activeTab === 'messages' && <Messages user={user} />}
       </main>
 
@@ -190,4 +189,4 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       )}
     </div>
   );
-        }
+}
