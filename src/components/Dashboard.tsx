@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api';
-import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle } from 'lucide-react';
+import { api, changePassword } from '../api';
+import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key } from 'lucide-react';
 import Requests from './Requests';
 import Finance from './Finance';
 import Messages from './Messages';
@@ -9,9 +9,17 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const [activeTab, setActiveTab] = useState<'units' | 'requests' | 'finance' | 'messages'>('units');
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // State های مدال ویرایش واحد
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
   const [editForm, setEditForm] = useState({ owner: '', status: 'vacant', debt: 0 });
   const [saving, setSaving] = useState(false);
+
+  // State های مدال تغییر رمز
+  const [showProfile, setShowProfile] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [passLoading, setPassLoading] = useState(false);
+  const [passMessage, setPassMessage] = useState({ type: '', text: '' });
 
   const fetchUnits = async () => {
     setLoading(true);
@@ -29,7 +37,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     setEditForm({ owner: unit.owner || '', status: unit.status || 'vacant', debt: unit.debt || 0 });
   };
 
-  const handleSave = async () => {
+  const handleSaveUnit = async () => {
     setSaving(true);
     try {
       await api.patch(`/units/${selectedUnit.id}`, editForm);
@@ -39,6 +47,24 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     finally { setSaving(false); }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassLoading(true);
+    setPassMessage({ type: '', text: '' });
+    try {
+      const res = await changePassword(newPassword);
+      // توکن جدید را در لوکال استوریج ذخیره می‌کنیم تا کاربر از اکانت خارج نشود
+      localStorage.setItem('token', res.newToken);
+      setPassMessage({ type: 'success', text: 'رمز عبور با موفقیت تغییر کرد.' });
+      setNewPassword('');
+      setTimeout(() => setShowProfile(false), 2000);
+    } catch (err: any) {
+      setPassMessage({ type: 'error', text: err.response?.data?.error || 'خطا در تغییر رمز' });
+    } finally {
+      setPassLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center rounded-b-2xl">
@@ -46,7 +72,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
           <h1 className="text-xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6" /> Block-118</h1>
           <p className="text-xs text-blue-200 mt-1">{user.name} خوش آمدید</p>
         </div>
-        <button onClick={onLogout} className="bg-blue-700 hover:bg-red-500 transition-colors px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2"><LogOut className="w-4 h-4" /> خروج</button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowProfile(true)} className="bg-blue-700 hover:bg-blue-800 transition-colors p-2 rounded-xl text-sm font-medium">
+            <User className="w-5 h-5" />
+          </button>
+          <button onClick={onLogout} className="bg-blue-700 hover:bg-red-500 transition-colors px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+            <LogOut className="w-4 h-4" /> خروج
+          </button>
+        </div>
       </header>
 
       <main className="p-4 max-w-3xl mx-auto">
@@ -101,6 +134,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </button>
       </nav>
 
+      {/* مدال ویرایش واحد */}
       {selectedUnit && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !saving && setSelectedUnit(null)}>
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -113,10 +147,47 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <div><label className="block text-sm text-gray-600 mb-1">وضعیت واحد</label><select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="w-full px-4 py-2 border rounded-xl outline-none bg-white"><option value="vacant">خالی</option><option value="occupied">ساکن دارد</option></select></div>
               <div><label className="block text-sm text-gray-600 mb-1">بدهی (تومان)</label><input type="number" value={editForm.debt} onChange={e => setEditForm({...editForm, debt: Number(e.target.value)})} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left" dir="ltr" /></div>
             </div>
-            <button onClick={handleSave} disabled={saving} className="w-full mt-6 bg-green-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">{saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}</button>
+            <button onClick={handleSaveUnit} disabled={saving} className="w-full mt-6 bg-green-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">{saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}</button>
+          </div>
+        </div>
+      )}
+
+      {/* مدال پروفایل و تغییر رمز */}
+      {showProfile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !passLoading && setShowProfile(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Key className="w-5 h-5 text-blue-600" /> تنظیمات حساب</h3>
+              <button onClick={() => setShowProfile(false)} className="text-gray-400 hover:text-red-500"><X /></button>
+            </div>
+            
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">رمز عبور جدید</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={e => setNewPassword(e.target.value)} 
+                  className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left" 
+                  dir="ltr" 
+                  placeholder="حداقل ۶ کاراکتر"
+                  required 
+                />
+              </div>
+
+              {passMessage.text && (
+                <p className={`text-sm text-center p-2 rounded-lg ${passMessage.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>
+                  {passMessage.text}
+                </p>
+              )}
+
+              <button type="submit" disabled={passLoading || newPassword.length < 6} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors">
+                {passLoading ? 'در حال تغییر...' : 'تغییر رمز عبور'}
+              </button>
+            </form>
           </div>
         </div>
       )}
     </div>
   );
-}
+        }
