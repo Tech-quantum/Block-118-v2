@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api, changePassword } from '../api';
-import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone, Download, Settings, Sun, Moon } from 'lucide-react';
+import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone, Download, Settings, Sun, Moon, HelpCircle } from 'lucide-react';
 import Requests from './Requests';
 import Finance from './Finance';
 import Messages from './Messages';
 
-// تعریف ۵ تم رنگی
 const THEMES = {
   blue: { bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-100', dark: 'dark:bg-blue-900', hover: 'hover:bg-blue-700' },
   emerald: { bg: 'bg-emerald-600', text: 'text-emerald-600', light: 'bg-emerald-100', dark: 'dark:bg-emerald-900', hover: 'hover:bg-emerald-700' },
@@ -22,9 +21,11 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   // State های تم و حالت شب
   const [themeName, setThemeName] = useState<keyof typeof THEMES>('blue');
   const [isDark, setIsDark] = useState(false);
+  
+  // State های مدال‌ها
   const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
-  // بارگذاری تنظیمات ذخیره شده
   useEffect(() => {
     const savedTheme = localStorage.getItem('app_theme') as keyof typeof THEMES;
     const savedDark = localStorage.getItem('app_dark') === 'true';
@@ -161,15 +162,12 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
           <p className="text-xs text-white/80 mt-1">{user.name} خوش آمدید</p>
         </div>
         <div className="flex items-center gap-1.5">
-          {/* دکمه تغییر حالت شب و روز */}
           <button onClick={toggleDarkMode} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          {/* دکمه تنظیمات */}
           <button onClick={() => setShowSettings(true)} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
             <Settings className="w-5 h-5" />
           </button>
-          {/* دکمه پروفایل */}
           <button onClick={() => setShowProfile(true)} className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-xl text-sm font-medium">
             <User className="w-5 h-5" />
           </button>
@@ -262,12 +260,12 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowSettings(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Settings className="w-5 h-5 text-gray-500" /> تنظیمات ظاهری</h3>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Settings className="w-5 h-5 text-gray-500" /> تنظیمات</h3>
               <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
             
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">رنگ اپلیکیشن را انتخاب کنید:</p>
-            <div className="flex justify-between gap-2 mb-8">
+            <div className="flex justify-between gap-2 mb-6">
               {(Object.keys(THEMES) as Array<keyof typeof THEMES>).map(color => (
                 <button 
                   key={color} 
@@ -277,11 +275,59 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               ))}
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl mb-4">
               <span className="font-bold text-gray-700 dark:text-gray-200">حالت شب (تیره)</span>
               <button onClick={toggleDarkMode} className={`p-2 rounded-xl transition-colors ${isDark ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-200 text-gray-600'}`}>
                 {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
               </button>
+            </div>
+
+            <button onClick={() => { setShowSettings(false); setShowHelp(true); }} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <HelpCircle className="w-5 h-5" /> راهنمای کاربران
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* مدال راهنما */}
+      {showHelp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowHelp(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 shrink-0">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><HelpCircle className="w-5 h-5 text-blue-500" /> راهنمای کاربران</h3>
+              <button onClick={() => setShowHelp(false)} className="text-gray-400 hover:text-red-500"><X /></button>
+            </div>
+            
+            <div className="overflow-y-auto pr-1 text-sm text-gray-600 dark:text-gray-300 space-y-4">
+              <div>
+                <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-1">👤 راهنمای ساکنین</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>ورود:</strong> با شماره واحد و رمز اختصاصی خود وارد شوید.</li>
+                  <li><strong>تغییر رمز:</strong> از طریق آیکون پروفایل (👤) در بالای صفحه انجام دهید.</li>
+                  <li><strong>شارژها:</strong> مشاهده بدهی و تاریخچه پرداخت‌ها در تب شارژها.</li>
+                  <li><strong>درخواست تعمیرات:</strong> ثبت خرابی در تب درخواست‌ها و پیگیری وضعیت.</li>
+                  <li><strong>ارتباط با مدیر:</strong> ارسال پیام در تب پیام‌ها.</li>
+                  <li><strong>اطلاعیه‌ها:</strong> پیام‌های گروهی مدیر در بالای داشبورد شما نمایش داده می‌شود.</li>
+                </ul>
+              </div>
+
+              {user.role === 'admin' && (
+                <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-1">👑 راهنمای مدیر</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li><strong>ویرایش واحدها:</strong> با کلیک روی هر واحد در داشبورد، مالک و بدهی را تغییر دهید.</li>
+                    <li><strong>امور مالی:</strong> در تب شارژها، صدور شارژ گروهی یا تک‌نفره و ثبت پرداخت‌ها.</li>
+                    <li><strong>مدیریت درخواست‌ها:</strong> تغییر وضعیت خرابی‌ها به "در حال بررسی" یا "انجام شد".</li>
+                    <li><strong>اطلاعیه:</strong> استفاده از بنر زرد رنگ در بالای داشبورد برای پیام به همه.</li>
+                    <li><strong>بکاپ:</strong> دریافت فایل پشتیبان از طریق آیکون پروفایل (👤).</li>
+                  </ul>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-1">📲 نصب روی گوشی</h4>
+                <p>در مرورگر کروم، منوی سه نقطه را باز کرده و گزینه <strong>Add to Home Screen</strong> را انتخاب کنید تا آیکون اپ روی صفحه اصلی قرار بگیرد.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -350,4 +396,4 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       )}
     </div>
   );
-          }
+              }
