@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench } from 'lucide-react';
+import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet } from 'lucide-react';
 import Requests from './Requests';
+import Finance from './Finance';
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<'units' | 'requests'>('units');
+  const [activeTab, setActiveTab] = useState<'units' | 'requests' | 'finance'>('units');
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
@@ -48,7 +49,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       </header>
 
       <main className="p-4 max-w-3xl mx-auto">
-        {activeTab === 'units' ? (
+        {activeTab === 'units' && (
           <>
             {user.role === 'admin' && (
               <div className="grid grid-cols-2 gap-4 mb-6">
@@ -71,15 +72,16 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
                     </div>
                     <p className="text-xs text-gray-400">طبقه {unit.floor}</p>
                     {unit.owner && <p className="text-xs text-gray-600 mt-1">مالک: {unit.owner}</p>}
-                    {unit.debt > 0 && <p className="text-xs text-red-500 mt-2 font-bold">بدهی: {unit.debt.toLocaleString('fa-IR')} تومان</p>}
+                    {unit.debt > 0 && <p className="text-xs text-red-500 mt-2 font-bold">بدهی: {Number(unit.debt).toLocaleString('fa-IR')} تومان</p>}
                   </div>
                 ))}
               </div>
             )}
           </>
-        ) : (
-          <Requests user={user} />
         )}
+
+        {activeTab === 'requests' && <Requests user={user} />}
+        {activeTab === 'finance' && <Finance user={user} />}
       </main>
 
       {/* منوی پایین */}
@@ -89,6 +91,9 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </button>
         <button onClick={() => setActiveTab('requests')} className={`flex flex-col items-center p-2 ${activeTab === 'requests' ? 'text-blue-600' : 'text-gray-400'}`}>
           <Wrench className="w-6 h-6" /><span className="text-xs mt-1 font-medium">درخواست‌ها</span>
+        </button>
+        <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center p-2 ${activeTab === 'finance' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <Wallet className="w-6 h-6" /><span className="text-xs mt-1 font-medium">شارژها</span>
         </button>
       </nav>
 
