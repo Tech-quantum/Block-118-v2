@@ -112,8 +112,8 @@ export default function Messages({ user }: { user: any }) {
             required
           />
           <button type="submit" disabled={sending} className="bg-blue-600 text-white p-2.5 rounded-xl disabled:opacity-50 hover:bg-blue-700 transition-colors">
-            {/* 👈 اصلاح نهایی جهت آیکون */}
-            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 -rotate-45" />}
+            {/* 👈 حذف کلاس چرخش: حالا دقیقا راست-بالا است */}
+            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </button>
         </div>
       </form>
