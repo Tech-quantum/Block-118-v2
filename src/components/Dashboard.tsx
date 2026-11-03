@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, changePassword } from '../api';
-import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone } from 'lucide-react';
+import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle, User, Key, Megaphone, Download } from 'lucide-react';
 import Requests from './Requests';
 import Finance from './Finance';
 import Messages from './Messages';
@@ -21,11 +21,14 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
   const [editForm, setEditForm] = useState({ owner: '', status: 'vacant', debt: 0 });
   const [saving, setSaving] = useState(false);
 
-  // State های مدال تغییر رمز
+  // State های مدال پروفایل
   const [showProfile, setShowProfile] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [passLoading, setPassLoading] = useState(false);
   const [passMessage, setPassMessage] = useState({ type: '', text: '' });
+  
+  // State بکاپ
+  const [backupLoading, setBackupLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -36,7 +39,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       ]);
       setUnits(unitsRes.data.units);
       if (annRes.data.announcements && annRes.data.announcements.length > 0) {
-        setAnnouncement(annRes.data.announcements[0]); // نمایش آخرین اطلاعیه
+        setAnnouncement(annRes.data.announcements[0]);
       }
     } catch (error) { console.error(error); } 
     finally { setLoading(false); }
@@ -92,6 +95,26 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
     } finally { setPassLoading(false); }
   };
 
+  const downloadBackup = async () => {
+    setBackupLoading(true);
+    try {
+      const res = await api.get('/backup');
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `block-118-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('خطا در دریافت فایل بکاپ');
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center rounded-b-2xl">
@@ -109,7 +132,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       </header>
 
-      {/* بنر اطلاعیه */}
       {(announcement || user.role === 'admin') && (
         <div className="max-w-3xl mx-auto px-4 mt-4">
           {announcement ? (
@@ -173,7 +195,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         {activeTab === 'messages' && <Messages user={user} />}
       </main>
 
-      {/* منوی پایین */}
       <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <button onClick={() => setActiveTab('units')} className={`flex flex-col items-center p-2 ${activeTab === 'units' ? 'text-blue-600' : 'text-gray-400'}`}>
           <Home className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">داشبورد</span>
@@ -207,7 +228,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       )}
 
-      {/* مدال تغییر رمز */}
+      {/* مدال پروفایل و بکاپ */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !passLoading && setShowProfile(false)}>
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -215,7 +236,8 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Key className="w-5 h-5 text-blue-600" /> تنظیمات حساب</h3>
               <button onClick={() => setShowProfile(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
-            <form onSubmit={handleChangePassword} className="space-y-4">
+            
+            <form onSubmit={handleChangePassword} className="space-y-4 mb-6">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">رمز عبور جدید</label>
                 <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-left" dir="ltr" placeholder="حداقل ۶ کاراکتر" required />
@@ -223,6 +245,15 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               {passMessage.text && <p className={`text-sm text-center p-2 rounded-lg ${passMessage.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>{passMessage.text}</p>}
               <button type="submit" disabled={passLoading || newPassword.length < 6} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50 transition-colors">{passLoading ? 'در حال تغییر...' : 'تغییر رمز عبور'}</button>
             </form>
+
+            {user.role === 'admin' && (
+              <div className="pt-4 border-t border-gray-100">
+                <button onClick={downloadBackup} disabled={backupLoading} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+                  {backupLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                  دانلود فایل پشتیبان (بکاپ)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -242,4 +273,4 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       )}
     </div>
   );
-                                                                                                                 }
+                                                                                                      }
