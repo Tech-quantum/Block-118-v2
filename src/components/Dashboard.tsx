@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet } from 'lucide-react';
+import { Building2, LogOut, Loader2, X, Edit3, Home, Wrench, Wallet, MessageCircle } from 'lucide-react';
 import Requests from './Requests';
 import Finance from './Finance';
+import Messages from './Messages';
 
 export default function Dashboard({ user, onLogout }: { user: any, onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<'units' | 'requests' | 'finance'>('units');
+  const [activeTab, setActiveTab] = useState<'units' | 'requests' | 'finance' | 'messages'>('units');
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
@@ -82,18 +83,22 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
 
         {activeTab === 'requests' && <Requests user={user} />}
         {activeTab === 'finance' && <Finance user={user} />}
+        {activeTab === 'messages' && <Messages user={user} />}
       </main>
 
-      {/* منوی پایین */}
+      {/* منوی پایین (حالا با ۴ تب) */}
       <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <button onClick={() => setActiveTab('units')} className={`flex flex-col items-center p-2 ${activeTab === 'units' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <Home className="w-6 h-6" /><span className="text-xs mt-1 font-medium">داشبورد</span>
+          <Home className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">داشبورد</span>
+        </button>
+        <button onClick={() => setActiveTab('messages')} className={`flex flex-col items-center p-2 ${activeTab === 'messages' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <MessageCircle className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">پیام‌ها</span>
         </button>
         <button onClick={() => setActiveTab('requests')} className={`flex flex-col items-center p-2 ${activeTab === 'requests' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <Wrench className="w-6 h-6" /><span className="text-xs mt-1 font-medium">درخواست‌ها</span>
+          <Wrench className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">درخواست‌ها</span>
         </button>
         <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center p-2 ${activeTab === 'finance' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <Wallet className="w-6 h-6" /><span className="text-xs mt-1 font-medium">شارژها</span>
+          <Wallet className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">شارژها</span>
         </button>
       </nav>
 
