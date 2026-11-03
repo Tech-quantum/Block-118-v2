@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let units = [];
     if (isAdmin) {
       units = (fsData.documents || []).map(parseDoc);
-      units.sort((a: any, b: any) => (a.unitNumber || '').localeCompare(b.unitNumber || ''));
+      units.sort((a: any, b: any) => { if (a.floor !== b.floor) return (a.floor || 0) - (b.floor || 0); return (a.unitNumber || '').localeCompare(b.unitNumber || ''); });
     } else if (fsData.name) {
       units = [parseDoc(fsData)];
     }
