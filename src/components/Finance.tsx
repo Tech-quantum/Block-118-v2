@@ -5,7 +5,6 @@ import { Loader2, Wallet, CreditCard, Plus, X, ArrowDownLeft, ArrowUpRight, Bank
 export default function Finance({ user }: { user: any }) {
   const [units, setUnits] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
   const [summary, setSummary] = useState({ fundBalance: 0 });
   const [loading, setLoading] = useState(true);
   
@@ -16,15 +15,13 @@ export default function Finance({ user }: { user: any }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [unitsRes, transRes, expRes, summaryRes] = await Promise.all([
+      const [unitsRes, transRes, summaryRes] = await Promise.all([
         api.get('/units'),
         api.get('/transactions'),
-        api.get('/expenses'),
         api.get('/summary')
       ]);
       setUnits(unitsRes.data.units);
       setTransactions(transRes.data.transactions);
-      setExpenses(expRes.data.expenses);
       setSummary(summaryRes.data);
     } catch (err) {
       console.error(err);
@@ -62,7 +59,7 @@ export default function Finance({ user }: { user: any }) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-1 gap-4 mb-6">
-        {/* 👈 موجودی صندوق (حالا برای همه نمایش داده می‌شود) */}
+        {/* موجودی صندوق (برای همه) */}
         <div className="bg-gradient-to-l from-emerald-600 to-emerald-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center relative overflow-hidden">
           <div className="relative z-10">
             <h2 className="text-lg font-medium opacity-90 mb-1 flex items-center gap-2"><Banknote className="w-5 h-5"/> موجودی فعلی صندوق ساختمان</h2>
