@@ -4,28 +4,33 @@ const PROJECT = "block-118-f2918";
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 
 async function updateSummary(token: string) {
-  const transRes = await fetch(`${BASE}/transactions`, { headers: { Authorization: `Bearer ${token}` } });
-  const expRes = await fetch(`${BASE}/expenses`, { headers: { Authorization: `Bearer ${token}` } });
-  
-  const transData = await transRes.json();
-  const expData = await expRes.json();
-  
-  let totalPayments = 0;
-  (transData.documents || []).forEach((doc: any) => {
-    if (doc.fields.type?.stringValue === 'payment') totalPayments += Number(doc.fields.amount?.integerValue || 0);
-  });
-  
-  let totalExpenses = 0;
-  (expData.documents || []).forEach((doc: any) => {
-    totalExpenses += Number(doc.fields.amount?.integerValue || 0);
-  });
-  
-  const fundBalance = totalPayments - totalExpenses;
-  
-  await fetch(`${BASE}/summary/stats`, {
-    method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: { fundBalance: { integerValue: String(fundBalance) } } })
-  });
+  try {
+    const transRes = await fetch(`${BASE}/transactions`, { headers: { Authorization: `Bearer ${token}` } });
+    const expRes = await fetch(`${BASE}/expenses`, { headers: { Authorization: `Bearer ${token}` } });
+    
+    const transData = await transRes.json();
+    const expData = await expRes.json();
+    
+    let totalPayments = 0;
+    (transData.documents || []).forEach((doc: any) => {
+      if (doc.fields.type?.stringValue === 'payment') totalPayments += Number(doc.fields.amount?.integerValue || 0);
+    });
+    
+    let totalExpenses = 0;
+    (expData.documents || []).forEach((doc: any) => {
+      totalExpenses += Number(doc.fields.amount?.integerValue || 0);
+    });
+    
+    const fundBalance = totalPayments - totalExpenses;
+    
+    // 👈 تغییر به PUT
+    await fetch(`${BASE}/summary/stats`, {
+      method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { fundBalance: { integerValue: String(fundBalance) } } })
+    });
+  } catch (e) {
+    console.error("Summary update failed", e);
+  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -46,7 +51,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isAdmin = username === 'admin';
 
     if (req.method === 'GET') {
-      // 👈 اگر درخواست برای خلاصه مالی بود، این بخش اجرا می‌شود
       if (req.query.mode === 'summary') {
         const fsRes = await fetch(`${BASE}/summary/stats`, { headers: { Authorization: `Bearer ${token}` } });
         if (!fsRes.ok) return res.status(200).json({ fundBalance: 0 }); 
@@ -80,7 +84,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else if (req.method === 'POST') {
       if (!isAdmin) return res.status(403).json({ error: 'فقط مدیر دسترسی دارد' });
       const { unit, amount, type, description } = req.body;
-      if (!unit || !amount || !type) return res.status(400).json({ error: 'اطلاعات ناقص است' });
 
       if (unit === 'all') {
         const unitsRes = await fetch(`${BASE}/units`, { headers: { Authorization: `Bearer ${token}` } });
