@@ -64,28 +64,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { unit, amount, type, description } = req.body;
       if (!unit || !amount || !type) return res.status(400).json({ error: 'اطلاعات ناقص است' });
 
-      // اگر واحد "همه" انتخاب شده بود
       if (unit === 'all') {
-        // گرفتن لیست تمام واحدها
         const unitsRes = await fetch(`${BASE}/units`, { headers: { Authorization: `Bearer ${token}` } });
         const unitsData = await unitsRes.json();
         const units = unitsData.documents || [];
 
-        // اعمال تغییرات برای تمام واحدها
         await Promise.all(units.map(async (u: any) => {
           const unitNum = u.fields.unitNumber.stringValue;
           let currentDebt = Number(u.fields.debt?.integerValue || 0);
+          // 👈 بدهی منفی مجاز است (یعنی طلبکار)
           let newDebt = type === 'charge' ? currentDebt + Number(amount) : currentDebt - Number(amount);
-          if (newDebt < 0) newDebt = 0;
 
-          // آپدیت بدهی واحد
           await fetch(`${BASE}/units/${unitNum}?updateMask.fieldPaths=debt`, {
             method: 'PATCH',
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ fields: { debt: { integerValue: String(newDebt) } } })
           });
 
-          // ثبت تراکنش برای هر واحد
           await fetch(`${BASE}/transactions`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -104,13 +99,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ success: true, message: 'برای تمام واحدها ثبت شد' });
 
       } else {
-        // اگر یک واحد خاص انتخاب شده بود
         const unitRes = await fetch(`${BASE}/units/${unit}`, { headers: { Authorization: `Bearer ${token}` } });
         const unitData = await unitRes.json();
         let currentDebt = Number(unitData.fields?.debt?.integerValue || 0);
 
+        // 👈 بدهی منفی مجاز است (یعنی طلبکار)
         let newDebt = type === 'charge' ? currentDebt + Number(amount) : currentDebt - Number(amount);
-        if (newDebt < 0) newDebt = 0;
 
         await fetch(`${BASE}/units/${unit}?updateMask.fieldPaths=debt`, {
           method: 'PATCH',
