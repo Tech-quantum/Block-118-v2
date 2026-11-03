@@ -45,6 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (val.integerValue !== undefined) return Number(val.integerValue);
         if (val.booleanValue !== undefined) return val.booleanValue;
         if (val.timestampValue !== undefined) return val.timestampValue;
+        if (val.nullValue !== undefined) return null;
         return null;
       };
       
@@ -60,22 +61,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ requests });
       
     } else if (req.method === 'POST') {
-      const { title, description } = req.body;
+      // دریافت فیلدهای جدید (image و thumbnail)
+      const { title, description, image, thumbnail } = req.body;
       if (!title) return res.status(400).json({ error: 'Title required' });
 
       const url = `${BASE}/requests`;
-      const body = {
-        fields: {
-          unit: { stringValue: username },
-          title: { stringValue: title },
-          description: { stringValue: description || '' },
-          status: { stringValue: 'pending' },
-          createdAt: { timestampValue: new Date().toISOString() }
-        }
+      const fields: any = {
+        unit: { stringValue: username },
+        title: { stringValue: title },
+        description: { stringValue: description || '' },
+        status: { stringValue: 'pending' },
+        createdAt: { timestampValue: new Date().toISOString() }
       };
 
+      // اگر عکسی ارسال شده بود، آن را به فیلدها اضافه می‌کنیم
+      if (image) fields.image = { stringValue: image };
+      if (thumbnail) fields.thumbnail = { stringValue: thumbnail };
+
       const fsRes = await fetch(url, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields })
       });
       if (!fsRes.ok) throw new Error('Failed to create request');
       return res.status(200).json({ success: true });
