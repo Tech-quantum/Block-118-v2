@@ -1,21 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
-import fs from 'fs';
-import path from 'path';
-
-function initFirebase() {
-  if (getApps().length > 0) return;
-  let serviceAccount;
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  } else {
-    const filePath = path.join(process.cwd(), 'serviceAccountKey.json');
-    serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  }
-  initializeApp({ credential: cert(serviceAccount) });
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -24,31 +7,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'No token' });
 
   const token = authHeader.split('Bearer ')[1];
+  const apiKey = process.env.FIREBASE_API_KEY;
 
   try {
-    initFirebase();
-    const decodedToken = await getAuth().verifyIdToken(token);
-    const username = decodedToken.email?.split('@')[0];
+    // ۱. پیدا کردن نام کاربری از روی توکن (با REST API)
+    const authRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: token })
+    });
+    const authData = await authRes.json();
+    if (!authData.users || authData.users.length === 0) throw new Error('Invalid token');
+    
+    const email = authData.users[0].email;
+    const username = email.split('@')[0];
     const isAdmin = username === 'admin';
-    const db = getFirestore();
 
+    // ۲. خواندن اطلاعات از فایربیس (با REST API)
+    const PROJECT = "block-118-f2918";
+    const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+    
+    let url = `${BASE}/units`;
+    if (!isAdmin) url = `${BASE}/units/${username}`;
+
+    const fsRes = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!fsRes.ok) throw new Error('Failed to fetch from Firestore');
+    
+    const fsData = await fsRes.json();
+
+    // ۳. تبدیل فرمت فایربیس به JSON معمولی
+    const parseValue = (val: any) => {
+      if (val.stringValue !== undefined) return val.stringValue;
+      if (val.integerValue !== undefined) return Number(val.integerValue);
+      if (val.doubleValue !== undefined) return val.doubleValue;
+      if (val.booleanValue !== undefined) return val.booleanValue;
+      if (val.timestampValue !== undefined) return val.timestampValue;
+      return null;
+    };
+
+    const parseDoc = (doc: any) => {
+      const id = doc.name.split('/').pop();
+      const fields = doc.fields || {};
+      const result: any = { id };
+      for (const key in fields) result[key] = parseValue(fields[key]);
+      return result;
+    };
+
+    let units = [];
     if (isAdmin) {
-      // حذف orderBy برای جلوگیری از خطای ایندکس
-      const snapshot = await db.collection('units').get();
-      const units = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // مرتب سازی در سمت سرور (جاوااسکریپت)
-      units.sort((a: any, b: any) => a.unitNumber.localeCompare(b.unitNumber));
-      
-      return res.status(200).json({ units });
-    } else {
-      const unitDoc = await db.collection('units').doc(username as string).get();
-      if (!unitDoc.exists) return res.status(404).json({ error: 'Unit not found' });
-      return res.status(200).json({ units: [{ id: unitDoc.id, ...unitDoc.data() }] });
+      units = (fsData.documents || []).map(parseDoc);
+      units.sort((a: any, b: any) => (a.unitNumber || '').localeCompare(b.unitNumber || ''));
+    } else if (fsData.name) {
+      units = [parseDoc(fsData)];
     }
+
+    return res.status(200).json({ units });
   } catch (error: any) {
     console.error('Fetch units error:', error);
-    // نمایش خطای دقیق برای دیباگ
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: error.message });
   }
 }
