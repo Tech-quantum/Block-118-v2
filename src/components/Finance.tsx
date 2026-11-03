@@ -14,20 +14,23 @@ export default function Finance({ user }: { user: any }) {
 
   const fetchData = async () => {
     setLoading(true);
+    // واکشی تک‌تک APIها به صورت جداگانه تا خطای یکی، بقیه را خراب نکند
     try {
-      const [unitsRes, transRes, summaryRes] = await Promise.all([
-        api.get('/units'),
-        api.get('/transactions'),
-        api.get('/summary')
-      ]);
+      const unitsRes = await api.get('/units');
       setUnits(unitsRes.data.units);
+    } catch (err) { console.error("خطا در واحدها", err); }
+
+    try {
+      const transRes = await api.get('/transactions');
       setTransactions(transRes.data.transactions);
+    } catch (err) { console.error("خطا در تراکنش‌ها", err); }
+
+    try {
+      const summaryRes = await api.get('/summary');
       setSummary(summaryRes.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error("خطا در خلاصه مالی", err); }
+
+    setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -59,7 +62,7 @@ export default function Finance({ user }: { user: any }) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-1 gap-4 mb-6">
-        {/* موجودی صندوق (برای همه) */}
+        {/* موجودی صندوق */}
         <div className="bg-gradient-to-l from-emerald-600 to-emerald-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center relative overflow-hidden">
           <div className="relative z-10">
             <h2 className="text-lg font-medium opacity-90 mb-1 flex items-center gap-2"><Banknote className="w-5 h-5"/> موجودی فعلی صندوق ساختمان</h2>
