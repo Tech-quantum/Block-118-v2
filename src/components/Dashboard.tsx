@@ -82,7 +82,7 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         )}
 
         {activeTab === 'requests' && <Requests user={user} />}
-        {activeTab === 'finance' && <Finance user={user} />}
+        {activeTab === 'finance' && <Finance />}
         {activeTab === 'messages' && <Messages user={user} />}
       </main>
 
