@@ -14,7 +14,6 @@ export default function Finance({ user }: { user: any }) {
 
   const fetchData = async () => {
     setLoading(true);
-    // واکشی تک‌تک APIها به صورت جداگانه تا خطای یکی، بقیه را خراب نکند
     try {
       const unitsRes = await api.get('/units');
       setUnits(unitsRes.data.units);
@@ -26,7 +25,8 @@ export default function Finance({ user }: { user: any }) {
     } catch (err) { console.error("خطا در تراکنش‌ها", err); }
 
     try {
-      const summaryRes = await api.get('/summary');
+      // 👈 تغییر آدرس برای خواندن خلاصه از داخل فایل تراکنش‌ها
+      const summaryRes = await api.get('/transactions?mode=summary');
       setSummary(summaryRes.data);
     } catch (err) { console.error("خطا در خلاصه مالی", err); }
 
@@ -62,7 +62,6 @@ export default function Finance({ user }: { user: any }) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-1 gap-4 mb-6">
-        {/* موجودی صندوق */}
         <div className="bg-gradient-to-l from-emerald-600 to-emerald-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center relative overflow-hidden">
           <div className="relative z-10">
             <h2 className="text-lg font-medium opacity-90 mb-1 flex items-center gap-2"><Banknote className="w-5 h-5"/> موجودی فعلی صندوق ساختمان</h2>
@@ -73,7 +72,6 @@ export default function Finance({ user }: { user: any }) {
           <Banknote className="w-24 h-24 absolute -left-4 -bottom-4 opacity-20" />
         </div>
 
-        {/* وضعیت بدهی/طلب */}
         <div className={`bg-gradient-to-l ${user.role === 'admin' ? 'from-blue-600 to-blue-800' : myUnitDebt > 0 ? 'from-red-600 to-red-800' : myUnitDebt < 0 ? 'from-green-600 to-green-800' : 'from-slate-600 to-slate-800'} text-white p-6 rounded-3xl shadow-lg flex justify-between items-center`}>
           <div>
             <h2 className="text-lg font-medium opacity-90 mb-1">
