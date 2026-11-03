@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Loader2, Wallet, CreditCard, AlertCircle, Plus, X, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Loader2, Wallet, CreditCard, Plus, X, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 export default function Finance({ user }: { user: any }) {
   const [units, setUnits] = useState<any[]>([]);
