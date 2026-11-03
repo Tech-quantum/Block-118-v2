@@ -196,7 +196,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         {activeTab === 'expenses' && <Expenses user={user} />}
       </main>
 
-      {/* منوی پایین با ۵ تب (تنظیم شده برای فیت شدن در صفحه) */}
       <nav className="fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 grid grid-cols-5 p-1 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-colors">
         <button onClick={() => setActiveTab('units')} className={`flex flex-col items-center p-2 ${activeTab === 'units' ? theme.text : 'text-gray-400 dark:text-gray-500'}`}>
           <Home className="w-5 h-5" /><span className="text-[10px] mt-1 font-medium">داشبورد</span>
@@ -215,7 +214,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </button>
       </nav>
 
-      {/* مدال تنظیمات ظاهری */}
       {showSettings && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowSettings(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -223,19 +221,16 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
               <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Settings className="w-5 h-5 text-gray-500" /> تنظیمات</h3>
               <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-red-500"><X /></button>
             </div>
-            
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">رنگ اپلیکیشن را انتخاب کنید:</p>
             <div className="flex justify-between gap-2 mb-6">
               {(Object.keys(THEMES) as Array<keyof typeof THEMES>).map(color => (
                 <button key={color} onClick={() => changeTheme(color)} className={`w-12 h-12 rounded-full ${THEMES[color].bg} ${themeName === color ? 'ring-4 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800' : 'opacity-70'} transition-all`} />
               ))}
             </div>
-
             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl mb-4">
               <span className="font-bold text-gray-700 dark:text-gray-200">حالت شب (تیره)</span>
               <button onClick={toggleDarkMode} className={`p-2 rounded-xl transition-colors ${isDark ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-200 text-gray-600'}`}>{isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}</button>
             </div>
-
             <button onClick={() => { setShowSettings(false); setShowHelp(true); }} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
               <HelpCircle className="w-5 h-5" /> راهنمای کاربران
             </button>
@@ -243,7 +238,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       )}
 
-      {/* مدال راهنما */}
       {showHelp && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowHelp(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -285,7 +279,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       )}
 
-      {/* مدال ویرایش واحد */}
       {selectedUnit && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !saving && setSelectedUnit(null)}>
           <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -303,7 +296,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       )}
 
-      {/* مدال پروفایل و بکاپ */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !passLoading && setShowProfile(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -327,7 +319,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </div>
       )}
 
-      {/* مدال نوشتن اطلاعیه */}
       {showAnnModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !annSaving && setShowAnnModal(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -342,4 +333,4 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
       )}
     </div>
   );
-      }
+          }
