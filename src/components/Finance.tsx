@@ -7,7 +7,6 @@ export default function Finance({ user }: { user: any }) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // State برای مدال ثبت تراکنش
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ unit: '', amount: '', type: 'payment', description: '' });
   const [saving, setSaving] = useState(false);
@@ -32,12 +31,20 @@ export default function Finance({ user }: { user: any }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // تاییدیه برای وقتی که "همه واحدها" انتخاب شده است
+    if (form.unit === 'all') {
+      if (!window.confirm('آیا از اعمال این تراکنش برای تمام ۴۰ واحد اطمینان دارید؟')) {
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await api.post('/transactions', { ...form, amount: Number(form.amount) });
       setShowModal(false);
       setForm({ unit: '', amount: '', type: 'payment', description: '' });
-      fetchData(); // رفرش اطلاعات
+      fetchData();
     } catch (err) {
       alert('خطا در ثبت تراکنش');
     } finally {
@@ -52,7 +59,6 @@ export default function Finance({ user }: { user: any }) {
 
   return (
     <div className="max-w-3xl mx-auto">
-      {/* کارت بالای صفحه */}
       <div className="bg-gradient-to-l from-blue-600 to-blue-800 text-white p-6 rounded-3xl shadow-lg mb-6 flex justify-between items-center">
         <div>
           <h2 className="text-lg font-medium opacity-90 mb-1">{user.role === 'admin' ? 'مجموع بدهی ساختمان' : 'بدهی واحد من'}</h2>
@@ -70,7 +76,6 @@ export default function Finance({ user }: { user: any }) {
         )}
       </div>
 
-      {/* لیست بدهکاران (فقط برای ادمین) */}
       {user.role === 'admin' && debtors.length > 0 && (
         <>
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Wallet className="w-5 h-5 text-blue-600" /> لیست بدهکاران</h3>
@@ -88,7 +93,6 @@ export default function Finance({ user }: { user: any }) {
         </>
       )}
 
-      {/* تاریخچه تراکنش‌ها */}
       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5 text-blue-600" /> تاریخچه تراکنش‌ها</h3>
       {transactions.length === 0 ? (
         <div className="bg-gray-50 text-gray-500 p-6 rounded-2xl text-center border border-gray-200">
@@ -120,7 +124,6 @@ export default function Finance({ user }: { user: any }) {
         </div>
       )}
 
-      {/* مدال ثبت تراکنش (فقط ادمین) */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !saving && setShowModal(false)}>
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -133,6 +136,8 @@ export default function Finance({ user }: { user: any }) {
                 <label className="block text-sm text-gray-600 mb-1">شماره واحد</label>
                 <select required value={form.unit} onChange={e => setForm({...form, unit: e.target.value})} className="w-full px-4 py-2 border rounded-xl outline-none bg-white">
                   <option value="" disabled>انتخاب کنید...</option>
+                  <option value="all" className="font-bold text-blue-600">🌟 همه واحدها (اعمال برای کل ساختمان)</option>
+                  <option disabled>──────────</option>
                   {units.map(u => <option key={u.id} value={u.unitNumber}>واحد {u.unitNumber}</option>)}
                 </select>
               </div>
