@@ -86,7 +86,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         {activeTab === 'messages' && <Messages user={user} />}
       </main>
 
-      {/* منوی پایین (حالا با ۴ تب) */}
       <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-safe z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <button onClick={() => setActiveTab('units')} className={`flex flex-col items-center p-2 ${activeTab === 'units' ? 'text-blue-600' : 'text-gray-400'}`}>
           <Home className="w-6 h-6" /><span className="text-[10px] mt-1 font-medium">داشبورد</span>
@@ -102,7 +101,6 @@ export default function Dashboard({ user, onLogout }: { user: any, onLogout: () 
         </button>
       </nav>
 
-      {/* مدال ویرایش */}
       {selectedUnit && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => !saving && setSelectedUnit(null)}>
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
