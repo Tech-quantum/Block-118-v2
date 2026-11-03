@@ -57,7 +57,7 @@ export default function Expenses({ user }: { user: any }) {
     setShowModal(true);
   };
 
-  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const totalExpenses = expenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -124,4 +124,4 @@ export default function Expenses({ user }: { user: any }) {
       )}
     </div>
   );
-            }
+          }
