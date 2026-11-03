@@ -1,32 +1,144 @@
-# React + TypeScript + Vite
+<div dir="rtl">
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+# Block-118 🏢
 
-Currently, two official plugins are available:
+وب‌اپلیکیشن مدیریت ساختمان برای یک ساختمان ۱۰ طبقه با ۴۰ واحد (هر طبقه ۴ واحد). کاملاً روی گوشی اندروید (Termux) توسعه یافته و روی Vercel منتشر شده است.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**آدرس:** https://block-118.vercel.app
+**نسخه:** ۱.۱ (۲ نوامبر ۲۰۲۶)
 
-## React Compiler
+## امکانات
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**مدیر ساختمان**
+- ورود با نام کاربری `admin`
+- دیدن هر ۴۰ واحد، تعداد کل واحدها و واحدهای بدهکار
+- ویرایش هر واحد (نام مالک، وضعیت خالی/ساکن دارد، بدهی)
+- دیدن همه درخواست‌های تعمیرات و تغییر وضعیت آن‌ها (در انتظار، در حال بررسی، انجام شد)
 
-## Expanding the Oxlint configuration
+**ساکن**
+- ورود با شماره واحد (مثلاً `101`) و رمز اختصاصی
+- فقط اطلاعات واحد خودش را می‌بیند
+- ثبت درخواست تعمیرات (عنوان و توضیحات) و دیدن وضعیت درخواست‌های خودش
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+**عمومی**
+- رابط راست‌چین و ریسپانسیو با فونت وزیرمتن
+- قابل نصب روی گوشی (PWA)
+- بدون نیاز به فیلترشکن برای ساکنین (به بخش معماری نگاه کنید)
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## پشته فناوری
+
+| بخش | فناوری |
+|---|---|
+| Frontend | React + Vite + Tailwind CSS |
+| API | توابع سرورلس Vercel (Node.js، فایل‌های `.mjs`) |
+| دیتابیس و احراز هویت | Firebase (Firestore و Authentication با ایمیل/رمز) |
+| میزبانی | Vercel (Root Directory: `client`) |
+| کنترل نسخه | Git و GitHub (Tech-quantum/Block-118) |
+| توسعه | Termux روی اندروید |
+
+## معماری
+
+مرورگر مستقیم با سرویس‌های گوگل صحبت نمی‌کند، چون بدون فیلترشکن در ایران باز نمی‌شوند. همه درخواست‌ها از طریق توابع Vercel می‌گذرند:
+
+```
+مرورگر  →  /api/*  (Vercel)  →  Firebase Auth و Firestore
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+- `/api/login`: ورود با ایمیل/رمز و دریافت توکن
+- `/api/refresh`: تمدید توکن
+- `/api/fs`: عبور درخواست‌های Firestore (فقط مسیرهای `/documents/...` و فقط با توکن معتبر)
+
+توکن ورود هر کاربر عیناً به Firestore فرستاده می‌شود. پس امنیت داده‌ها با **قوانین Firestore** تأمین می‌شود، نه با خود پروکسی. نیازی به `serviceAccountKey.json` نیست.
+
+## ساختار پروژه
+
+```
+Block-118/
+├── client/
+│   ├── api/
+│   │   ├── login.mjs        ورود
+│   │   ├── refresh.mjs      تمدید توکن
+│   │   └── fs.mjs           پروکسی Firestore
+│   ├── public/
+│   │   ├── manifest.webmanifest
+│   │   ├── icon-192.png
+│   │   └── icon-512.png
+│   ├── src/
+│   │   ├── App.jsx          رابط اصلی (ورود، داشبورد، شارژها، درخواست‌ها)
+│   │   ├── api.js           نشست، توکن و تبدیل داده‌های Firestore
+│   │   ├── auth.js          ورود و خروج
+│   │   ├── units.js         خواندن و ویرایش واحدها
+│   │   ├── requests.js      درخواست‌های تعمیرات
+│   │   └── firebase.js      (فعلاً استفاده نمی‌شود)
+│   └── index.html
+├── server/                  بک‌اند قدیمی Express (متوقف شده)
+└── README.md
+```
+
+## مدل داده (Firestore)
+
+**`units/{شماره واحد}`** (مثلاً `101`)
+
+| فیلد | نوع | توضیح |
+|---|---|---|
+| unitNumber | string | شماره واحد |
+| floor | number | طبقه |
+| owner | string یا null | نام مالک |
+| status | string | `vacant` یا `occupied` |
+| debt | number | بدهی به تومان |
+
+**`requests/{شناسه خودکار}`**
+
+| فیلد | نوع | توضیح |
+|---|---|---|
+| unit | string | شماره واحد ثبت‌کننده |
+| title | string | عنوان (حداکثر ۱۰۰ کاراکتر) |
+| description | string | توضیحات |
+| status | string | `pending`، `in_progress` یا `done` |
+| createdAt | timestamp | زمان ثبت |
+
+## احراز هویت
+
+نام کاربری به ایمیل ساختگی تبدیل می‌شود: `admin` ← `admin@block118.app` و `101` ← `101@block118.app`. ارقام فارسی هم پذیرفته می‌شوند. حساب هر ساکن با اسکریپت جداگانه ساخته شده و رمز هر واحد تصادفی است.
+
+## قوانین امنیتی Firestore
+
+- `units`: ادمین می‌خواند و می‌نویسد. ساکن فقط سند واحد خودش را می‌خواند.
+- `requests`: ادمین می‌خواند و ویرایش می‌کند. ساکن فقط درخواست‌های واحد خودش را می‌خواند و فقط می‌تواند درخواست جدید با وضعیت `pending` بسازد.
+
+## راه‌اندازی و استقرار
+
+1. ساخت پروژه Firebase، فعال‌کردن Authentication (ایمیل/رمز) و Firestore، و ثبت یک اپ وب.
+2. جایگزین‌کردن مقدارهای `firebaseConfig` (در صورت نیاز؛ فعلاً فقط کلید API در توابع `api/` استفاده می‌شود و می‌توان آن را با متغیر محیطی `FIREBASE_API_KEY` در Vercel تنظیم کرد).
+3. اتصال ریپو به Vercel با Root Directory روی `client`.
+4. گذاشتن قوانین Firestore بالا و Publish.
+5. هر Push روی `main` به‌صورت خودکار دیپلوی می‌شود.
+
+## نکات توسعه در Termux
+
+- برای جلوگیری از به‌هم‌ریختن کد، فایل‌ها را در گیت‌هاب ویرایش کن و در Termux فقط `git pull` بزن.
+- اگر `git push` رد شد: `git config pull.rebase false` ، `git pull` و دوباره `git push`.
+- پوشه `node_modules` و فایل‌های حساس در `.gitignore` هستند.
+
+## نکات امنیتی
+
+- فایل `serviceAccountKey.json` هرگز کامیت نشود.
+- رمزهای ساکنین را در ریپو یا جای عمومی نگذارید و فقط به خود ساکن بدهید.
+- کلید `apiKey` فایربیس برای اپ وب محرمانه نیست و امنیت داده‌ها با قوانین Firestore است.
+
+## وضعیت کارها
+
+**انجام‌شده**
+- اسکلت پروژه، رابط راست‌چین و ورود
+- اتصال به Firebase و ساخت ۴۰ واحد
+- ویرایش واحدها توسط ادمین، حریم خصوصی ساکنین
+- ثبت و مدیریت درخواست‌های تعمیرات
+- PWA و کار کردن بدون فیلترشکن از طریق Vercel
+
+**کارهای بعدی**
+- پنل مدیریت رمز ساکنین از داخل اپ
+- ثبت پرداخت و تاریخچه شارژها (دکمه «پرداخت» فعلاً فقط ظاهری است)
+- حذف دکمه ساخت ۴۰ واحد و کد قدیمی `firebase.js`
+- تست با اینترنت چند اپراتور و در صورت نیاز دامنه اختصاصی
+
+</div>
