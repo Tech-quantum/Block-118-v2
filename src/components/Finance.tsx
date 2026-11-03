@@ -6,6 +6,7 @@ export default function Finance({ user }: { user: any }) {
   const [units, setUnits] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [summary, setSummary] = useState({ fundBalance: 0 });
   const [loading, setLoading] = useState(true);
   
   const [showModal, setShowModal] = useState(false);
@@ -15,14 +16,16 @@ export default function Finance({ user }: { user: any }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [unitsRes, transRes, expRes] = await Promise.all([
+      const [unitsRes, transRes, expRes, summaryRes] = await Promise.all([
         api.get('/units'),
         api.get('/transactions'),
-        api.get('/expenses')
+        api.get('/expenses'),
+        api.get('/summary')
       ]);
       setUnits(unitsRes.data.units);
       setTransactions(transRes.data.transactions);
       setExpenses(expRes.data.expenses);
+      setSummary(summaryRes.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -52,12 +55,6 @@ export default function Finance({ user }: { user: any }) {
 
   const debtors = units.filter(u => u.debt > 0);
   const totalDebt = debtors.reduce((sum, u) => sum + Number(u.debt), 0);
-
-  // محاسبه موجودی صندوق (فقط برای ادمین دقیق است)
-  const totalPayments = transactions.filter(t => t.type === 'payment').reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-  const fundBalance = totalPayments - totalExpenses;
-
   const myUnitDebt = units[0]?.debt || 0;
 
   if (loading) return <div className="flex justify-center py-10 text-blue-500"><Loader2 className="w-8 h-8 animate-spin" /></div>;
@@ -65,18 +62,16 @@ export default function Finance({ user }: { user: any }) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-1 gap-4 mb-6">
-        {/* موجودی صندوق (فقط برای ادمین) */}
-        {user.role === 'admin' && (
-          <div className="bg-gradient-to-l from-emerald-600 to-emerald-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center relative overflow-hidden">
-            <div className="relative z-10">
-              <h2 className="text-lg font-medium opacity-90 mb-1 flex items-center gap-2"><Banknote className="w-5 h-5"/> موجودی فعلی صندوق ساختمان</h2>
-              <p className="text-3xl font-bold">
-                {fundBalance.toLocaleString('fa-IR')} <span className="text-sm font-normal">تومان</span>
-              </p>
-            </div>
-            <Banknote className="w-24 h-24 absolute -left-4 -bottom-4 opacity-20" />
+        {/* 👈 موجودی صندوق (حالا برای همه نمایش داده می‌شود) */}
+        <div className="bg-gradient-to-l from-emerald-600 to-emerald-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center relative overflow-hidden">
+          <div className="relative z-10">
+            <h2 className="text-lg font-medium opacity-90 mb-1 flex items-center gap-2"><Banknote className="w-5 h-5"/> موجودی فعلی صندوق ساختمان</h2>
+            <p className="text-3xl font-bold">
+              {summary.fundBalance.toLocaleString('fa-IR')} <span className="text-sm font-normal">تومان</span>
+            </p>
           </div>
-        )}
+          <Banknote className="w-24 h-24 absolute -left-4 -bottom-4 opacity-20" />
+        </div>
 
         {/* وضعیت بدهی/طلب */}
         <div className={`bg-gradient-to-l ${user.role === 'admin' ? 'from-blue-600 to-blue-800' : myUnitDebt > 0 ? 'from-red-600 to-red-800' : myUnitDebt < 0 ? 'from-green-600 to-green-800' : 'from-slate-600 to-slate-800'} text-white p-6 rounded-3xl shadow-lg flex justify-between items-center`}>
@@ -180,4 +175,4 @@ export default function Finance({ user }: { user: any }) {
       )}
     </div>
   );
-              }
+}
