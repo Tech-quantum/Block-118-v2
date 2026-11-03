@@ -4,20 +4,23 @@ import { getFirestore } from 'firebase-admin/firestore';
 import fs from 'fs';
 import path from 'path';
 
-// تابع راه‌اندازی فایربیس (هم برای لوکال و هم برای سرور)
+// تابع راه‌اندازی فایربیس
 function initFirebase() {
   if (getApps().length > 0) return;
-  
+
   let serviceAccount;
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    // در محیط Vercel از متغیر محیطی می‌خوانیم
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    try {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } catch (e) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not valid JSON.");
+    }
+  } else if (process.env.VERCEL) {
+    throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is missing in Vercel.");
   } else {
-    // در محیط لوکال از فایل می‌خوانیم
     const filePath = path.join(process.cwd(), 'serviceAccountKey.json');
     serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
   }
-  
   initializeApp({ credential: cert(serviceAccount) });
 }
 
@@ -39,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const apiKey = process.env.FIREBASE_API_KEY;
     if (!apiKey) throw new Error('FIREBASE_API_KEY is missing');
 
-    // ۱. لاگین با REST API فایربیس (چون Admin SDK متد لاگین با رمز ندارد)
+    // ۱. لاگین با REST API فایربیس
     const authResponse = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
       {
@@ -50,7 +53,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     const authData = await authResponse.json();
+    
     if (!authResponse.ok) {
+      // این خط باعث می‌شود خطای دقیق گوگل در لاگ‌های Vercel نمایش داده شود
+      console.error('Firebase Auth Error:', authData.error);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
