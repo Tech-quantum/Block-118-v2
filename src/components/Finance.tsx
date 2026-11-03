@@ -53,12 +53,11 @@ export default function Finance({ user }: { user: any }) {
   const debtors = units.filter(u => u.debt > 0);
   const totalDebt = debtors.reduce((sum, u) => sum + Number(u.debt), 0);
 
-  // محاسبه موجودی صندوق
+  // محاسبه موجودی صندوق (فقط برای ادمین دقیق است)
   const totalPayments = transactions.filter(t => t.type === 'payment').reduce((sum, t) => sum + Number(t.amount), 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
   const fundBalance = totalPayments - totalExpenses;
 
-  // وضعیت واحد ساکن (بدهکار یا طلبکار)
   const myUnitDebt = units[0]?.debt || 0;
 
   if (loading) return <div className="flex justify-center py-10 text-blue-500"><Loader2 className="w-8 h-8 animate-spin" /></div>;
@@ -66,18 +65,20 @@ export default function Finance({ user }: { user: any }) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-1 gap-4 mb-6">
-        {/* موجودی صندوق (برای همه) */}
-        <div className="bg-gradient-to-l from-emerald-600 to-emerald-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center relative overflow-hidden">
-          <div className="relative z-10">
-            <h2 className="text-lg font-medium opacity-90 mb-1 flex items-center gap-2"><Banknote className="w-5 h-5"/> موجودی فعلی صندوق ساختمان</h2>
-            <p className="text-3xl font-bold">
-              {fundBalance > 0 ? fundBalance.toLocaleString('fa-IR') : '0'} <span className="text-sm font-normal">تومان</span>
-            </p>
+        {/* موجودی صندوق (فقط برای ادمین) */}
+        {user.role === 'admin' && (
+          <div className="bg-gradient-to-l from-emerald-600 to-emerald-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center relative overflow-hidden">
+            <div className="relative z-10">
+              <h2 className="text-lg font-medium opacity-90 mb-1 flex items-center gap-2"><Banknote className="w-5 h-5"/> موجودی فعلی صندوق ساختمان</h2>
+              <p className="text-3xl font-bold">
+                {fundBalance.toLocaleString('fa-IR')} <span className="text-sm font-normal">تومان</span>
+              </p>
+            </div>
+            <Banknote className="w-24 h-24 absolute -left-4 -bottom-4 opacity-20" />
           </div>
-          <Banknote className="w-24 h-24 absolute -left-4 -bottom-4 opacity-20" />
-        </div>
+        )}
 
-        {/* وضعیت بدهی/طلب (ادمین کل ساختمان، ساکن فقط خودش) */}
+        {/* وضعیت بدهی/طلب */}
         <div className={`bg-gradient-to-l ${user.role === 'admin' ? 'from-blue-600 to-blue-800' : myUnitDebt > 0 ? 'from-red-600 to-red-800' : myUnitDebt < 0 ? 'from-green-600 to-green-800' : 'from-slate-600 to-slate-800'} text-white p-6 rounded-3xl shadow-lg flex justify-between items-center`}>
           <div>
             <h2 className="text-lg font-medium opacity-90 mb-1">
@@ -179,4 +180,4 @@ export default function Finance({ user }: { user: any }) {
       )}
     </div>
   );
-        }
+              }
