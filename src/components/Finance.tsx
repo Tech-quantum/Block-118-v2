@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Loader2, Wallet, CreditCard, AlertCircle } from 'lucide-react';
 
-export default function Finance({ user }: { user: any }) {
+export default function Finance() {
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +27,6 @@ export default function Finance({ user }: { user: any }) {
 
   return (
     <div className="max-w-3xl mx-auto">
-      {/* کارت خلاصه وضعیت */}
       <div className="bg-gradient-to-l from-blue-600 to-blue-800 text-white p-6 rounded-3xl shadow-lg mb-6">
         <h2 className="text-lg font-medium opacity-90 mb-1">وضعیت مالی ساختمان</h2>
         <p className="text-3xl font-bold">{totalDebt > 0 ? totalDebt.toLocaleString('fa-IR') : '0'} <span className="text-sm font-normal">تومان</span></p>
@@ -52,7 +51,6 @@ export default function Finance({ user }: { user: any }) {
                 {unit.owner && <p className="text-xs text-gray-500 mt-1">{unit.owner}</p>}
                 <p className="text-sm font-bold text-red-500 mt-2">{Number(unit.debt).toLocaleString('fa-IR')} تومان</p>
               </div>
-              {/* دکمه پرداخت (فعلاً غیرفعال است تا درگاه وصل شود) */}
               <button disabled className="bg-blue-50 text-blue-400 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 cursor-not-allowed">
                 <CreditCard className="w-4 h-4" /> پرداخت
               </button>
