@@ -28,7 +28,7 @@ export default function Expenses({ user }: { user: any }) {
     setSaving(true);
     try {
       if (form.id) {
-        await api.patch(`/expenses/${form.id}`, { title: form.title, amount: Number(form.amount), description: form.description });
+        await api.patch(`/expenses?id=${form.id}`, { title: form.title, amount: Number(form.amount), description: form.description });
       } else {
         await api.post('/expenses', { title: form.title, amount: Number(form.amount), description: form.description });
       }
@@ -45,7 +45,7 @@ export default function Expenses({ user }: { user: any }) {
   const deleteExpense = async (id: string) => {
     if (!window.confirm('آیا از حذف این هزینه اطمینان دارید؟')) return;
     try {
-      await api.delete(`/expenses/${id}`);
+      await api.delete(`/expenses?id=${id}`);
       fetchExpenses();
     } catch (err) {
       alert('خطا در حذف هزینه');
@@ -86,21 +86,30 @@ export default function Expenses({ user }: { user: any }) {
       ) : (
         <div className="space-y-3">
           {expenses.map(exp => (
-            <div key={exp.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <div>
-                <p className="font-bold text-gray-800 dark:text-gray-100">{exp.title}</p>
-                {exp.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{exp.description}</p>}
-                <p className="text-[10px] text-gray-400 mt-2">{new Date(exp.createdAt).toLocaleDateString('fa-IR')}</p>
+            <div key={exp.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              
+              <div className="p-4 flex justify-between items-start">
+                <div>
+                  <p className="font-bold text-gray-800 dark:text-gray-100">{exp.title}</p>
+                  {exp.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{exp.description}</p>}
+                  <p className="text-[10px] text-gray-400 mt-2">{new Date(exp.createdAt).toLocaleDateString('fa-IR')}</p>
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-rose-500">{Number(exp.amount).toLocaleString('fa-IR')} تومان</p>
+                </div>
               </div>
-              <div className="text-left flex flex-col items-end gap-2">
-                <p className="font-bold text-rose-500">{Number(exp.amount).toLocaleString('fa-IR')} تومان</p>
-                {user.role === 'admin' && (
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(exp)} className="p-1.5 text-blue-500 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 transition-colors"><Edit3 className="w-4 h-4" /></button>
-                    <button onClick={() => deleteExpense(exp.id)} className="p-1.5 text-red-500 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                )}
-              </div>
+
+              {/* 👈 نوار پایین کارت برای دکمه‌ها (کاملاً واضح) */}
+              {user.role === 'admin' && (
+                <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
+                  <button onClick={() => openEdit(exp)} className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline">
+                    <Edit3 className="w-3.5 h-3.5" /> ویرایش
+                  </button>
+                  <button onClick={() => deleteExpense(exp.id)} className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 font-medium hover:underline">
+                    <Trash2 className="w-3.5 h-3.5" /> حذف
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
