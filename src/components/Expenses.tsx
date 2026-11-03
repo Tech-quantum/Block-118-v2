@@ -124,4 +124,4 @@ export default function Expenses({ user }: { user: any }) {
       )}
     </div>
   );
-          }
+}
