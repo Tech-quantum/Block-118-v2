@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loginUser } from './api';
 import { Building2, Lock, User } from 'lucide-react';
+import Dashboard from './components/Dashboard';
 
 function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  // بررسی اینکه آیا کاربر قبلاً وارد شده است یا خیر
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    if (savedUser && token) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +27,7 @@ function App() {
       const data = await loginUser(username, password);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      alert('ورود موفقیت‌آمیز بود! (فاز بعدی داشبورد است)');
+      setUser(data.user);
     } catch (err: any) {
       setError('نام کاربری یا رمز عبور اشتباه است.');
     } finally {
@@ -24,6 +35,18 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
+  // اگر کاربر لاگین کرده بود، داشبورد را نشان بده
+  if (user) {
+    return <Dashboard user={user} onLogout={handleLogout} />;
+  }
+
+  // در غیر این صورت، صفحه لاگین
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm border border-gray-100">
@@ -71,7 +94,7 @@ function App() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex justify-center items-center"
           >
             {loading ? 'در حال ورود...' : 'ورود به سیستم'}
           </button>
