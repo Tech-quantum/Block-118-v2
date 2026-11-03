@@ -1,5 +1,36 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const PROJECT = "block-118-f2918";
+// 👈 اصلاح شد: آدرس پایه باید به روت دیتابیس اشاره کند
+const DOCS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+const EXPENSES_URL = `${DOCS_BASE}/expenses`;
+
+async function updateSummary(token: string) {
+  // گرفتن تراکنش‌ها از روت اصلی (نه از داخل پوشه هزینه‌ها)
+  const transRes = await fetch(`${DOCS_BASE}/transactions`, { headers: { Authorization: `Bearer ${token}` } });
+  const expRes = await fetch(EXPENSES_URL, { headers: { Authorization: `Bearer ${token}` } });
+  
+  const transData = await transRes.json();
+  const expData = await expRes.json();
+  
+  let totalPayments = 0;
+  (transData.documents || []).forEach((doc: any) => {
+    if (doc.fields.type?.stringValue === 'payment') totalPayments += Number(doc.fields.amount?.integerValue || 0);
+  });
+  
+  let totalExpenses = 0;
+  (expData.documents || []).forEach((doc: any) => {
+    totalExpenses += Number(doc.fields.amount?.integerValue || 0);
+  });
+  
+  const fundBalance = totalPayments - totalExpenses;
+  
+  await fetch(`${DOCS_BASE}/summary/stats`, {
+    method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { fundBalance: { integerValue: String(fundBalance) } } })
+  });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'No token' });
@@ -11,30 +42,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token })
     });
     const authData = await authRes.json();
-    const email = authData.users?.[0]?.email;
-    const isAdmin = email === 'admin@block118.app';
-
-    const PROJECT = "block-118-f2918";
-    const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/expenses`;
-    const { id } = req.query; // گرفتن ID از آدرس
+    const isAdmin = authData.users?.[0]?.email === 'admin@block118.app';
 
     if (req.method === 'GET') {
-      const fsRes = await fetch(BASE, { headers: { Authorization: `Bearer ${token}` } });
+      const fsRes = await fetch(EXPENSES_URL, { headers: { Authorization: `Bearer ${token}` } });
       const fsData = await fsRes.json();
-      const parseValue = (val: any) => {
-        if (val.stringValue !== undefined) return val.stringValue;
-        if (val.integerValue !== undefined) return Number(val.integerValue);
-        if (val.timestampValue !== undefined) return val.timestampValue;
-        return null;
-      };
-      const parseDoc = (doc: any) => {
+      const parseValue = (val: any) => val.stringValue !== undefined ? val.stringValue : val.integerValue !== undefined ? Number(val.integerValue) : val.timestampValue;
+      const expenses = (fsData.documents || []).map((doc: any) => {
         const docId = doc.name.split('/').pop();
         const fields = doc.fields || {};
         const result: any = { id: docId };
         for (const key in fields) result[key] = parseValue(fields[key]);
         return result;
-      };
-      const expenses = (fsData.documents || []).map(parseDoc).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       return res.status(200).json({ expenses });
       
     } else if (req.method === 'POST') {
@@ -49,11 +69,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           createdAt: { timestampValue: new Date().toISOString() }
         }
       };
-      await fetch(BASE, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      await fetch(EXPENSES_URL, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      await updateSummary(token);
       return res.status(200).json({ success: true });
 
     } else if (req.method === 'PATCH') {
       if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
+      const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'Missing ID' });
       const { title, amount, description } = req.body;
       const updateMask = ['title', 'amount', 'description'];
@@ -62,20 +84,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         amount: { integerValue: String(amount) },
         description: { stringValue: description || '' }
       };
-      await fetch(`${BASE}/${id}?updateMask.fieldPaths=${updateMask.join('&updateMask.fieldPaths=')}`, {
+      await fetch(`${EXPENSES_URL}/${id}?updateMask.fieldPaths=${updateMask.join('&updateMask.fieldPaths=')}`, {
         method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields })
       });
+      await updateSummary(token);
       return res.status(200).json({ success: true });
 
     } else if (req.method === 'DELETE') {
       if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
+      const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'Missing ID' });
-      await fetch(`${BASE}/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await fetch(`${EXPENSES_URL}/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await updateSummary(token);
       return res.status(200).json({ success: true });
     }
     
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
+    console.error('Expense API Error:', error);
     return res.status(500).json({ error: error.message });
   }
-        }
+}
