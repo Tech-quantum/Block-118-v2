@@ -18,14 +18,10 @@ function initFirebase() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'No token' });
 
   const token = authHeader.split('Bearer ')[1];
 
@@ -37,20 +33,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = getFirestore();
 
     if (isAdmin) {
-      // ادمین همه واحدها را می‌بیند
-      const snapshot = await db.collection('units').orderBy('unitNumber').get();
+      // حذف orderBy برای جلوگیری از خطای ایندکس
+      const snapshot = await db.collection('units').get();
       const units = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // مرتب سازی در سمت سرور (جاوااسکریپت)
+      units.sort((a: any, b: any) => a.unitNumber.localeCompare(b.unitNumber));
+      
       return res.status(200).json({ units });
     } else {
-      // ساکن فقط واحد خودش را می‌بیند
       const unitDoc = await db.collection('units').doc(username as string).get();
-      if (!unitDoc.exists) {
-        return res.status(404).json({ error: 'Unit not found' });
-      }
+      if (!unitDoc.exists) return res.status(404).json({ error: 'Unit not found' });
       return res.status(200).json({ units: [{ id: unitDoc.id, ...unitDoc.data() }] });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Fetch units error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    // نمایش خطای دقیق برای دیباگ
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
