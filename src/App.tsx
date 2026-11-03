@@ -10,7 +10,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // بررسی اینکه آیا کاربر قبلاً وارد شده است یا خیر
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
@@ -41,12 +40,10 @@ function App() {
     setUser(null);
   };
 
-  // اگر کاربر لاگین کرده بود، داشبورد را نشان بده
   if (user) {
     return <Dashboard user={user} onLogout={handleLogout} />;
   }
 
-  // در غیر این صورت، صفحه لاگین
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm border border-gray-100">
