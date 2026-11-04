@@ -1,13 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const PROJECT = "block-118-f2918";
-// 👈 آدرس پایه باید به روت دیتابیس اشاره کند تا هم تراکنش‌ها و هم هزینه‌ها را بخواند
 const DOCS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 const EXPENSES_URL = `${DOCS_BASE}/expenses`;
 
 async function updateSummary(token: string) {
   try {
-    // خواندن کل تراکنش‌ها و هزینه‌ها برای محاسبه
     const transRes = await fetch(`${DOCS_BASE}/transactions`, { headers: { Authorization: `Bearer ${token}` } });
     const expRes = await fetch(EXPENSES_URL, { headers: { Authorization: `Bearer ${token}` } });
     
@@ -26,17 +24,15 @@ async function updateSummary(token: string) {
     
     const fundBalance = totalPayments - totalExpenses;
     
-    // 👈 تغییر به PUT برای آپدیت حتمی سند صندوق
-    const res = await fetch(`${DOCS_BASE}/summary/stats`, {
-      method: 'PUT', 
+    // 👈 اصلاح شد: استفاده از PATCH با updateMask
+    const res = await fetch(`${DOCS_BASE}/summary/stats?updateMask.fieldPaths=fundBalance`, {
+      method: 'PATCH', 
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: { fundBalance: { integerValue: String(fundBalance) } } })
     });
 
     if (!res.ok) {
       console.error("خطای فایربیس در آپدیت صندوق (Expenses):", await res.text());
-    } else {
-      console.log("صندوق با موفقیت در فایل هزینه‌ها آپدیت شد:", fundBalance);
     }
   } catch (e) {
     console.error("خطای غیرمنتظره در آپدیت صندوق (Expenses):", e);
@@ -72,8 +68,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else if (req.method === 'POST') {
       if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
       const { title, amount, description } = req.body;
-      if (!title || !amount) return res.status(400).json({ error: 'Missing fields' });
-      
       const body = {
         fields: {
           title: { stringValue: title },
@@ -83,17 +77,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       };
       await fetch(EXPENSES_URL, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      
-      // 👈 آپدیت صندوق
       await updateSummary(token);
       return res.status(200).json({ success: true });
 
     } else if (req.method === 'PATCH') {
       if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'Missing ID' });
       const { title, amount, description } = req.body;
-      
       const updateMask = ['title', 'amount', 'description'];
       const fields = {
         title: { stringValue: title },
@@ -103,19 +93,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await fetch(`${EXPENSES_URL}/${id}?updateMask.fieldPaths=${updateMask.join('&updateMask.fieldPaths=')}`, {
         method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields })
       });
-      
-      // 👈 آپدیت صندوق
       await updateSummary(token);
       return res.status(200).json({ success: true });
 
     } else if (req.method === 'DELETE') {
       if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'Missing ID' });
-      
       await fetch(`${EXPENSES_URL}/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-      
-      // 👈 آپدیت صندوق
       await updateSummary(token);
       return res.status(200).json({ success: true });
     }
@@ -124,4 +108,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
-}
+        }
