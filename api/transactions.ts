@@ -5,6 +5,7 @@ const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/
 
 async function updateSummary(token: string) {
   try {
+    console.log("شروع محاسبه صندوق...");
     const transRes = await fetch(`${BASE}/transactions`, { headers: { Authorization: `Bearer ${token}` } });
     const expRes = await fetch(`${BASE}/expenses`, { headers: { Authorization: `Bearer ${token}` } });
     
@@ -22,8 +23,8 @@ async function updateSummary(token: string) {
     });
     
     const fundBalance = totalPayments - totalExpenses;
+    console.log("محاسبه انجام شد. کل پرداخت‌ها:", totalPayments, "کل هزینه‌ها:", totalExpenses, "موجودی:", fundBalance);
     
-    // 👈 استفاده از PUT برای بازنویسی کامل سند صندوق
     const res = await fetch(`${BASE}/summary/stats`, {
       method: 'PUT', 
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -31,12 +32,13 @@ async function updateSummary(token: string) {
     });
 
     if (!res.ok) {
-      console.error("خطای آپدیت صندوق در فایربیس:", await res.text());
+      const errText = await res.text();
+      console.error("❌ خطای فایربیس در آپدیت صندوق:", errText);
     } else {
-      console.log("صندوق با موفقیت آپدیت شد به:", fundBalance);
+      console.log("✅ صندوق با موفقیت آپدیت شد به:", fundBalance);
     }
   } catch (e) {
-    console.error("خطای غیرمنتظره در آپدیت صندوق:", e);
+    console.error("❌ خطای غیرمنتظره در آپدیت صندوق:", e);
   }
 }
 
@@ -59,10 +61,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'GET') {
       if (req.query.mode === 'summary') {
+        console.log("درخواست خواندن موجودی صندوق...");
         const fsRes = await fetch(`${BASE}/summary/stats`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!fsRes.ok) return res.status(200).json({ fundBalance: 0 }); 
+        
+        if (!fsRes.ok) {
+          const errText = await fsRes.text();
+          console.error("❌ خطا در خواندن سند صندوق:", errText);
+          return res.status(200).json({ fundBalance: 0 }); 
+        }
+        
         const data = await fsRes.json();
-        // خواندن مقدار به صورت ایمن
+        console.log("داده‌های خوانده شده از صندوق:", JSON.stringify(data.fields));
+        
         const balance = data.fields?.fundBalance?.integerValue !== undefined 
           ? Number(data.fields.fundBalance.integerValue) 
           : 0;
@@ -97,6 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { unit, amount, type, description } = req.body;
 
       if (unit === 'all') {
+        // ... (بخش ثبت گروهی بدون تغییر)
         const unitsRes = await fetch(`${BASE}/units`, { headers: { Authorization: `Bearer ${token}` } });
         const unitsData = await unitsRes.json();
         const units = unitsData.documents || [];
@@ -108,6 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           await fetch(`${BASE}/transactions`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { unit: { stringValue: unitNum }, amount: { integerValue: String(amount) }, type: { stringValue: type }, description: { stringValue: description || '' }, createdAt: { timestampValue: new Date().toISOString() } } }) });
         }));
       } else {
+        // ... (بخش ثبت تک‌نفره بدون تغییر)
         const unitRes = await fetch(`${BASE}/units/${unit}`, { headers: { Authorization: `Bearer ${token}` } });
         const unitData = await unitRes.json();
         let currentDebt = Number(unitData.fields?.debt?.integerValue || 0);
@@ -123,4 +135,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
-            }
+}
