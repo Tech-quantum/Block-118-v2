@@ -23,13 +23,20 @@ async function updateSummary(token: string) {
     
     const fundBalance = totalPayments - totalExpenses;
     
-    // 👈 تغییر به PUT
-    await fetch(`${BASE}/summary/stats`, {
-      method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    // 👈 استفاده از PUT برای بازنویسی کامل سند صندوق
+    const res = await fetch(`${BASE}/summary/stats`, {
+      method: 'PUT', 
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: { fundBalance: { integerValue: String(fundBalance) } } })
     });
+
+    if (!res.ok) {
+      console.error("خطای آپدیت صندوق در فایربیس:", await res.text());
+    } else {
+      console.log("صندوق با موفقیت آپدیت شد به:", fundBalance);
+    }
   } catch (e) {
-    console.error("Summary update failed", e);
+    console.error("خطای غیرمنتظره در آپدیت صندوق:", e);
   }
 }
 
@@ -55,7 +62,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const fsRes = await fetch(`${BASE}/summary/stats`, { headers: { Authorization: `Bearer ${token}` } });
         if (!fsRes.ok) return res.status(200).json({ fundBalance: 0 }); 
         const data = await fsRes.json();
-        return res.status(200).json({ fundBalance: Number(data.fields?.fundBalance?.integerValue || 0) });
+        // خواندن مقدار به صورت ایمن
+        const balance = data.fields?.fundBalance?.integerValue !== undefined 
+          ? Number(data.fields.fundBalance.integerValue) 
+          : 0;
+        return res.status(200).json({ fundBalance: balance });
       }
 
       let url = `${BASE}/transactions`;
@@ -112,4 +123,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
-}
+            }
