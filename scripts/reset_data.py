@@ -1,6 +1,5 @@
 import requests
 import getpass
-import json
 
 # تنظیمات پروژه
 API_KEY = "AIzaSyDwojnNPEpQKADXEXLNI4avDdtDlu9s5qw"
@@ -10,7 +9,6 @@ BASE_URL = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databases
 def reset_financial_data():
     print("--- سیستم صفر کردن اطلاعات مالی Block-118 ---")
     email = "admin@block118.app"
-    # گرفتن رمز به صورت مخفی (در ترمینال نمایش داده نمی‌شود)
     password = getpass.getpass(f"رمز عبور برای {email} را وارد کنید: ")
 
     # ۱. لاگین به فایربیس
@@ -21,6 +19,7 @@ def reset_financial_data():
     res = requests.post(auth_url, json=auth_payload)
     if not res.ok:
         print("❌ خطا در ورود. رمز عبور را چک کنید.")
+        print(f"پاسخ فایربیس: {res.text}")
         return
 
     token = res.json()["idToken"]
@@ -33,8 +32,14 @@ def reset_financial_data():
     # ۲. صفر کردن بدهی تمام واحدها
     print("در حال صفر کردن بدهی ۴۰ واحد...")
     units_res = requests.get(f"{BASE_URL}/units", headers=headers)
-    units = units_res.json().get("documents", [])
     
+    # 👈 بررسی دقیق خطا برای دیدن پیام فایربیس
+    if units_res.status_code != 200:
+        print(f"❌ خطا در دریافت واحدها. کد وضعیت: {units_res.status_code}")
+        print(f"پاسخ فایربیس: {units_res.text}")
+        return
+
+    units = units_res.json().get("documents", [])
     for unit in units:
         unit_id = unit["name"].split("/")[-1]
         requests.patch(
@@ -47,22 +52,26 @@ def reset_financial_data():
     # ۳. حذف تمام تراکنش‌ها
     print("در حال حذف تراکنش‌های مالی...")
     trans_res = requests.get(f"{BASE_URL}/transactions", headers=headers)
-    transactions = trans_res.json().get("documents", [])
-    
-    for t in transactions:
-        t_id = t["name"].split("/")[-1]
-        requests.delete(f"{BASE_URL}/transactions/{t_id}", headers=headers)
-    print(f"✅ {len(transactions)} تراکنش حذف شد.\n")
+    if trans_res.status_code == 200:
+        transactions = trans_res.json().get("documents", [])
+        for t in transactions:
+            t_id = t["name"].split("/")[-1]
+            requests.delete(f"{BASE_URL}/transactions/{t_id}", headers=headers)
+        print(f"✅ {len(transactions)} تراکنش حذف شد.\n")
+    else:
+        print(f"❌ خطا در دریافت تراکنش‌ها: {trans_res.text}\n")
 
     # ۴. حذف تمام هزینه‌ها
     print("در حال حذف هزینه‌های ساختمان...")
     exp_res = requests.get(f"{BASE_URL}/expenses", headers=headers)
-    expenses = exp_res.json().get("documents", [])
-    
-    for e in expenses:
-        e_id = e["name"].split("/")[-1]
-        requests.delete(f"{BASE_URL}/expenses/{e_id}", headers=headers)
-    print(f"✅ {len(expenses)} هزینه حذف شد.\n")
+    if exp_res.status_code == 200:
+        expenses = exp_res.json().get("documents", [])
+        for e in expenses:
+            e_id = e["name"].split("/")[-1]
+            requests.delete(f"{BASE_URL}/expenses/{e_id}", headers=headers)
+        print(f"✅ {len(expenses)} هزینه حذف شد.\n")
+    else:
+        print(f"❌ خطا در دریافت هزینه‌ها: {exp_res.text}\n")
 
     # ۵. صفر کردن موجودی صندوق
     print("در حال صفر کردن موجودی صندوق...")
